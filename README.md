@@ -17,23 +17,17 @@ The platform ships with a pre-loaded scenario: reviewing 10 CloudSync Pro invoic
 
 ### Option 1 — GitHub Codespaces (free, Replit-like experience ★ recommended)
 
-GitHub Codespaces gives you a full VS Code IDE in your browser — no local setup needed.
+GitHub Codespaces gives you a full VS Code IDE in your browser — no local setup needed. The app starts automatically when you open the codespace.
+
 Free tier: **60 hours/month** (or 120 h/month with GitHub Pro).
 
-1. Click the green **Code** button on the repo page, then **Codespaces → Create codespace on main**
-2. Wait ~30 seconds while the container starts and `npm install` runs automatically
-3. In the Codespaces terminal, add your API key:
-   ```bash
-   echo "ANTHROPIC_API_KEY=your-anthropic-api-key-here" > .env
-   ```
-4. Start the app:
-   ```bash
-   npm start
-   ```
-5. Codespaces will prompt you to **Open in Browser** for port 3000 — click it
+**➡️ See the full step-by-step guide: [CODESPACES.md](./CODESPACES.md)**
 
-> **Tip:** To keep the key across sessions, go to **github.com → Settings → Codespaces → Secrets**
-> and add `ANTHROPIC_API_KEY` as a Codespaces secret. It will be injected automatically.
+**Short version (if you've used Codespaces before):**
+1. Store `ANTHROPIC_API_KEY` as a [Codespaces secret](https://github.com/settings/codespaces) for this repo (one-time)
+2. Click the green **Code** button → **Codespaces → Create codespace on main**
+3. The container starts, `npm install` runs, then `npm start` launches automatically via VS Code task
+4. Port 3000 auto-forwards → click **Open in Browser**
 
 ---
 
@@ -108,7 +102,7 @@ A `Dockerfile` is included in this repo so `fly launch` works out of the box.
 
 ---
 
-## Testing on Replit — Step-by-Step Walkthrough
+## Testing the App — Step-by-Step Walkthrough
 
 ### Learner flow (main path)
 
@@ -194,7 +188,10 @@ A `Dockerfile` is included in this repo so `fly launch` works out of the box.
 finance-sim-prototype/
 ├── .devcontainer/
 │   └── devcontainer.json            ← GitHub Codespaces config
+├── .vscode/
+│   └── tasks.json                   ← Auto-starts the server on codespace open
 ├── .replit                          ← Replit run config
+├── CODESPACES.md                    ← Detailed GitHub Codespaces walkthrough
 ├── Dockerfile                       ← Container build (Fly.io, Railway, Render)
 ├── render.yaml                      ← Render one-click deploy config
 ├── replit.nix                       ← Nix packages for Replit

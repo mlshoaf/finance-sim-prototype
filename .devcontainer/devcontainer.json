@@ -8,7 +8,12 @@
       "onAutoForward": "openPreview"
     }
   },
+  // postCreateCommand runs once when the container is first created
   "postCreateCommand": "npm install",
+  // postStartCommand runs every time the codespace is resumed —
+  // keeps node_modules in sync after a git pull that adds new packages.
+  // --prefer-offline makes this very fast (< 2 s) when nothing has changed.
+  "postStartCommand": "npm install --prefer-offline",
   "customizations": {
     "vscode": {
       "extensions": [
