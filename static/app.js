@@ -250,6 +250,7 @@ function app() {
     chatInput: '',
     aiTyping: false,
     attachedDocs: [],
+    apiKeyMissing: false,
 
     async loadSession(id) {
       this.sessionId = id;
@@ -258,6 +259,17 @@ function app() {
       this.decisionsMap = {};
       this.chatMessages = [];
       this.attachedDocs = [];
+      this.apiKeyMissing = false;
+
+      // Check server health so we can surface an API-key warning early
+      try {
+        const healthRes = await fetch('/api/health');
+        if (healthRes.ok) {
+          const health = await healthRes.json();
+          this.apiKeyMissing = !health.apiKeyConfigured;
+        }
+        // If endpoint returns 404 (older deploy), we leave apiKeyMissing false
+      } catch (_) { /* network error — server unavailable, ignore silently */ }
 
       const [session, docData] = await Promise.all([
         apiGet(`/api/sessions/${id}`),

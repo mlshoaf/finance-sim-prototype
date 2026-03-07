@@ -405,6 +405,11 @@ app.get('/api/sessions/:id/score', (req, res) => {
 
 // ─── AI AGENT ROUTES ──────────────────────────────────────────────────────────
 
+// GET /api/health — server health and configuration check
+app.get('/api/health', (req, res) => {
+  res.json({ ok: true, apiKeyConfigured: !!process.env.ANTHROPIC_API_KEY });
+});
+
 // POST /api/agent/chat — send message to Claude
 app.post('/api/agent/chat', chatLimiter, async (req, res) => {
   const { session_id, message, attached_doc_ids } = req.body;
@@ -439,4 +444,13 @@ app.get('/api/sessions/:id/chat', (req, res) => {
 
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`Finance Simulation server running on http://localhost:${PORT}`);
+  if (!process.env.ANTHROPIC_API_KEY) {
+    console.warn(
+      '\n⚠️  WARNING: ANTHROPIC_API_KEY is not set — AI chat will not work.\n' +
+      '   GitHub Codespaces: go to github.com/settings/codespaces → Secrets,\n' +
+      '   add ANTHROPIC_API_KEY (value: sk-ant-...) and grant this repository access,\n' +
+      '   then stop and restart the codespace.\n' +
+      '   Local development: add ANTHROPIC_API_KEY=sk-ant-... to your .env file.\n'
+    );
+  }
 });

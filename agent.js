@@ -37,7 +37,11 @@ function formatDocumentBlock(filename, text) {
  */
 async function chat({ session_id, message, attached_doc_ids = [], extractDocText }) {
   if (!process.env.ANTHROPIC_API_KEY) {
-    throw new Error('ANTHROPIC_API_KEY environment variable is not set. Please add it in Replit Secrets or your .env file.');
+    throw new Error(
+      'ANTHROPIC_API_KEY is not set. ' +
+      'In GitHub Codespaces: go to github.com/settings/codespaces → Secrets → add ANTHROPIC_API_KEY and grant this repository access, then stop and restart the codespace. ' +
+      'For local development: add ANTHROPIC_API_KEY=sk-ant-... to your .env file.'
+    );
   }
 
   const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });

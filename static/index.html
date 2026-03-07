@@ -380,6 +380,15 @@
             <p>Ask about invoices. Drag documents from the left panel to attach them.</p>
           </div>
 
+          <!-- API key warning banner -->
+          <div x-show="apiKeyMissing"
+               style="background:#fef3c7;border:1px solid #f59e0b;border-radius:6px;padding:10px 14px;margin-bottom:8px;font-size:12px;color:#92400e;line-height:1.5">
+            ⚠️ <strong>AI chat is unavailable</strong> — the <code>ANTHROPIC_API_KEY</code> secret is not configured.<br>
+            In GitHub Codespaces: go to
+            <strong>github.com/settings/codespaces → Secrets</strong>, add <code>ANTHROPIC_API_KEY</code>
+            and grant this repository access, then stop and restart the codespace.
+          </div>
+
           <!-- Drop zone for attached documents -->
           <div class="drop-zone"
             @dragover.prevent="$el.classList.add('drag-over')"
