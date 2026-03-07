@@ -1,0 +1,29 @@
+SOFTWARE LICENSE AND SERVICES AGREEMENT
+Contract #: CSP-ENT-2026
+
+PARTIES:
+Vendor: CloudSync Pro, Inc., 123 SaaS Boulevard, Austin, TX 78701
+Customer: Meridian Corp, 456 Enterprise Ave, Dallas, TX 75201
+
+CONTRACT DETAILS:
+Effective Date: January 1, 2026
+Expiration Date: December 31, 2026
+PO Reference: PO-88321
+Payment Terms: Net 30
+
+PRODUCTS & PRICING SCHEDULE:
+Product: Enterprise License | Unit: per seat/mo | Rate: $45.00 | Licensed Seats: 15
+Product: API Access - Premium Tier | Unit: per month | Rate: $250.00 | Unlimited API calls
+Product: Data Storage Add-on - 500GB | Unit: per month | Rate: $150.00 | 500 GB storage block
+Product: Premium Support | Unit: per year | Rate: $1,200.00 | Business hours SLA
+
+APPLICABLE TAX RATE:
+Sales Tax Rate: 8.25% (Austin, TX)
+
+TERMS AND CONDITIONS:
+1. All invoices must reference PO-88321 and Contract #CSP-ENT-2026.
+2. Seat count is fixed at 15 Enterprise License seats for the contract term.
+3. Applicable tax rate is 8.25% unless otherwise adjusted by regulatory change.
+4. Unit prices are fixed per the pricing schedule above for the contract term.
+5. Payment is due Net 30 from invoice date.
+6. Disputes must be raised within 15 days of invoice receipt.

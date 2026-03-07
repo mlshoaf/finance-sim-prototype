@@ -1,0 +1,23 @@
+{
+  "name": "finance-sim-prototype",
+  "version": "1.0.0",
+  "description": "AI-powered finance training platform for teaching finance teams to review invoices with Claude",
+  "main": "server.js",
+  "scripts": {
+    "start": "node seed.js && node server.js",
+    "generate-pdfs": "node scripts/generate-pdfs.js",
+    "seed": "node seed.js",
+    "dev": "node server.js"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.39.0",
+    "alpinejs": "^3.14.8",
+    "better-sqlite3": "^11.9.1",
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2",
+    "express-rate-limit": "^8.3.0",
+    "multer": "^2.1.1",
+    "pdf-parse": "^1.1.1",
+    "pdfkit": "^0.15.1"
+  }
+}
