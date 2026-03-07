@@ -1,0 +1,516 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Finance Sim — AI Invoice Review Training</title>
+  <link rel="stylesheet" href="/styles.css" />
+</head>
+<body>
+
+<div id="app" x-data="app()" x-init="init()">
+
+  <!-- ─── ROLE SELECTION ──────────────────────────────────────────────────── -->
+  <div x-show="view === 'home'" class="role-page">
+    <h1>📊 Finance Sim</h1>
+    <p>AI-powered training platform for accounts payable teams</p>
+    <div class="role-cards">
+      <div class="role-card" @click="navigate('instructor')">
+        <div class="role-icon">🏫</div>
+        <h2>Instructor</h2>
+        <p>Build scenarios, upload invoices, set answer keys</p>
+      </div>
+      <div class="role-card" @click="navigate('learner')">
+        <div class="role-icon">📋</div>
+        <h2>Learner</h2>
+        <p>Review invoices using AI assistance and submit decisions</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─── INSTRUCTOR DASHBOARD ──────────────────────────────────────────── -->
+  <template x-if="view === 'instructor'">
+    <div class="page">
+      <nav class="navbar">
+        <span class="navbar-brand"><span class="icon">📊</span> Finance Sim</span>
+        <div class="navbar-links">
+          <button @click="navigate('home')">← Back</button>
+        </div>
+      </nav>
+      <div class="container" style="padding-top:24px">
+        <div class="dashboard-header">
+          <h2>🏫 Instructor Dashboard</h2>
+          <button class="btn btn-primary" @click="createScenario()">+ New Scenario</button>
+        </div>
+        <div x-show="instructorScenarios.length === 0" class="empty-state">
+          <div class="icon">📁</div>
+          <p>No scenarios yet. Create your first one!</p>
+        </div>
+        <div class="scenario-list">
+          <template x-for="sc in instructorScenarios" :key="sc.id">
+            <div class="scenario-item">
+              <div>
+                <h3 x-text="sc.title"></h3>
+                <p x-text="sc.description || 'No description'"></p>
+              </div>
+              <div style="display:flex;align-items:center;gap:12px">
+                <span class="badge" :class="'badge-' + sc.status" x-text="sc.status"></span>
+                <div class="scenario-actions">
+                  <button class="btn btn-outline btn-sm" @click="editScenario(sc.id)">✏️ Edit</button>
+                  <button class="btn btn-outline btn-sm" @click="togglePublish(sc)">
+                    <span x-text="sc.status === 'published' ? '⬇️ Unpublish' : '🚀 Publish'"></span>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </template>
+        </div>
+      </div>
+    </div>
+  </template>
+
+  <!-- ─── SCENARIO EDITOR ───────────────────────────────────────────────── -->
+  <template x-if="view === 'editor'">
+    <div class="page">
+      <nav class="navbar">
+        <span class="navbar-brand"><span class="icon">📊</span> Finance Sim</span>
+        <div class="navbar-links">
+          <button @click="navigate('instructor')">← Dashboard</button>
+        </div>
+      </nav>
+      <div class="container" style="padding-top:24px">
+        <h2 style="margin-bottom:20px">✏️ Edit Scenario</h2>
+        <div x-show="editorError" class="error-banner" x-text="editorError"></div>
+        <div class="card" style="margin-bottom:16px">
+          <div class="form-group">
+            <label>Title</label>
+            <input class="form-control" type="text" x-model="editData.title" placeholder="Scenario title" />
+          </div>
+          <div class="form-group">
+            <label>Description</label>
+            <textarea class="form-control" x-model="editData.description" placeholder="Describe the scenario for learners..."></textarea>
+          </div>
+          <div style="display:flex;gap:10px">
+            <button class="btn btn-outline" @click="saveScenario('draft')">💾 Save Draft</button>
+            <button class="btn btn-success" @click="saveScenario('published')">🚀 Publish</button>
+          </div>
+        </div>
+
+        <!-- Document Upload -->
+        <div class="editor-layout">
+          <div class="card">
+            <h3 style="font-size:15px;font-weight:700;margin-bottom:12px">📄 Invoice Documents</h3>
+            <div class="upload-zone"
+              @click="triggerUpload('invoice')"
+              @dragover.prevent="$el.classList.add('drag-over')"
+              @dragleave="$el.classList.remove('drag-over')"
+              @drop.prevent="handleFileDrop($event, 'invoice')">
+              <p>Drop invoice files here or click to upload</p>
+              <p style="font-size:11px;margin-top:4px">PDF or CSV</p>
+            </div>
+            <input type="file" id="invoiceFileInput" multiple accept=".pdf,.csv" style="display:none"
+              @change="handleFileInput($event, 'invoice')" />
+            <div style="margin-top:10px">
+              <template x-for="doc in editDocs.filter(d => d.doc_type === 'invoice')" :key="doc.id">
+                <div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid #f1f5f9">
+                  <span style="font-size:16px">📄</span>
+                  <span style="flex:1;font-size:13px" x-text="doc.display_name || doc.filename"></span>
+                  <button class="btn btn-danger btn-sm" @click="deleteDoc(doc.id)">✕</button>
+                </div>
+              </template>
+            </div>
+          </div>
+
+          <div class="card">
+            <h3 style="font-size:15px;font-weight:700;margin-bottom:12px">📎 Reference Documents</h3>
+            <div class="upload-zone"
+              @click="triggerUpload('reference')"
+              @dragover.prevent="$el.classList.add('drag-over')"
+              @dragleave="$el.classList.remove('drag-over')"
+              @drop.prevent="handleFileDrop($event, 'reference')">
+              <p>Drop reference files here or click to upload</p>
+              <p style="font-size:11px;margin-top:4px">Contract, rate card, etc.</p>
+            </div>
+            <input type="file" id="referenceFileInput" multiple accept=".pdf,.csv" style="display:none"
+              @change="handleFileInput($event, 'reference')" />
+            <div style="margin-top:10px">
+              <template x-for="doc in editDocs.filter(d => d.doc_type === 'reference')" :key="doc.id">
+                <div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid #f1f5f9">
+                  <span style="font-size:16px">📎</span>
+                  <span style="flex:1;font-size:13px" x-text="doc.display_name || doc.filename"></span>
+                  <button class="btn btn-danger btn-sm" @click="deleteDoc(doc.id)">✕</button>
+                </div>
+              </template>
+            </div>
+          </div>
+        </div>
+
+        <!-- Answer Key / Rubric -->
+        <div class="card" style="margin-top:16px">
+          <h3 style="font-size:15px;font-weight:700;margin-bottom:12px">🔑 Answer Key (Rubric)</h3>
+          <p style="font-size:12px;color:#64748b;margin-bottom:12px">Set the correct action for each invoice document.</p>
+          <table class="rubric-table" x-show="editDocs.filter(d => d.doc_type === 'invoice').length > 0">
+            <thead>
+              <tr>
+                <th>Invoice</th>
+                <th>Correct Action</th>
+                <th>Error Description</th>
+              </tr>
+            </thead>
+            <tbody>
+              <template x-for="doc in editDocs.filter(d => d.doc_type === 'invoice')" :key="doc.id">
+                <tr>
+                  <td x-text="doc.display_name || doc.filename" style="font-size:12px"></td>
+                  <td>
+                    <select class="rubric-action-select" x-model="rubricEntries[doc.id].action">
+                      <option value="">-- select --</option>
+                      <option value="approve">✅ Approve</option>
+                      <option value="flag">🚩 Flag</option>
+                    </select>
+                  </td>
+                  <td>
+                    <input type="text" class="form-control" style="font-size:12px;padding:4px 8px"
+                      x-model="rubricEntries[doc.id].error_description"
+                      placeholder="Describe the error (if flagged)" />
+                  </td>
+                </tr>
+              </template>
+            </tbody>
+          </table>
+          <div x-show="editDocs.filter(d => d.doc_type === 'invoice').length === 0" class="empty-state">
+            <p>Upload invoice documents to configure the answer key.</p>
+          </div>
+          <div style="margin-top:12px">
+            <button class="btn btn-primary" @click="saveRubric()">💾 Save Answer Key</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </template>
+
+  <!-- ─── LEARNER DASHBOARD ─────────────────────────────────────────────── -->
+  <template x-if="view === 'learner'">
+    <div class="page">
+      <nav class="navbar">
+        <span class="navbar-brand"><span class="icon">📊</span> Finance Sim</span>
+        <div class="navbar-links">
+          <button @click="navigate('home')">← Back</button>
+        </div>
+      </nav>
+      <div class="container" style="padding-top:24px">
+        <div class="dashboard-header">
+          <h2>📋 Learner Dashboard</h2>
+        </div>
+        <div x-show="learnerScenarios.length === 0" class="empty-state">
+          <div class="icon">📭</div>
+          <p>No published scenarios available. Check back later!</p>
+        </div>
+        <div class="scenario-list">
+          <template x-for="sc in learnerScenarios" :key="sc.id">
+            <div class="scenario-item">
+              <div>
+                <h3 x-text="sc.title"></h3>
+                <p x-text="sc.description || 'No description'"></p>
+              </div>
+              <div class="scenario-actions">
+                <button class="btn btn-primary" @click="startSession(sc.id)">▶️ Start</button>
+              </div>
+            </div>
+          </template>
+        </div>
+      </div>
+    </div>
+  </template>
+
+  <!-- ─── WORKSPACE (session) ───────────────────────────────────────────── -->
+  <template x-if="view === 'session'">
+    <div class="page" style="display:flex;flex-direction:column;height:100vh">
+      <nav class="navbar">
+        <span class="navbar-brand"><span class="icon">📊</span> Finance Sim</span>
+        <div class="navbar-links">
+          <span style="color:#94a3b8;font-size:12px" x-text="sessionScenarioTitle"></span>
+          <button @click="navigate('learner')">✕ Exit</button>
+        </div>
+      </nav>
+
+      <div class="workspace">
+
+        <!-- ── Left Panel: Invoice List ──────────────────────────────────── -->
+        <div class="panel-left">
+          <div class="panel-left-header">
+            <div class="timer" x-text="timerDisplay"></div>
+            <div class="progress-bar-wrap">
+              <div class="progress-bar" :style="`width: ${progressPct}%`"></div>
+            </div>
+            <div class="progress-label" x-text="`${decisionsCount} / ${invoiceDocCount} reviewed`"></div>
+          </div>
+
+          <div class="panel-left-scroll">
+            <!-- Invoice list -->
+            <div class="section-toggle">📄 Invoices</div>
+            <template x-for="doc in invoiceDocs" :key="doc.id">
+              <div class="invoice-item"
+                :class="{ active: activeDocId === doc.id }"
+                draggable="true"
+                @dragstart="dragDoc($event, doc)"
+                @click="openDoc(doc)">
+                <span class="invoice-status" x-text="decisionIcon(doc.id)"></span>
+                <span x-text="doc.display_name || doc.filename"></span>
+              </div>
+            </template>
+
+            <!-- Reference documents -->
+            <div style="margin-top:8px">
+              <div class="section-toggle" @click="showRefs = !showRefs">
+                <span x-text="showRefs ? '▾' : '▸'"></span>
+                📎 Reference Docs
+              </div>
+              <template x-if="showRefs">
+                <div>
+                  <template x-for="doc in referenceDocs" :key="doc.id">
+                    <div class="ref-doc-item"
+                      draggable="true"
+                      @dragstart="dragDoc($event, doc)"
+                      @click="openDoc(doc)">
+                      <span>📎</span>
+                      <span x-text="doc.display_name || doc.filename"></span>
+                    </div>
+                  </template>
+                </div>
+              </template>
+            </div>
+          </div>
+
+          <div class="panel-left-footer">
+            <button class="btn btn-success" style="width:100%"
+              :disabled="!allDecided"
+              @click="submitSession()">
+              ✅ Submit Batch
+            </button>
+            <p x-show="!allDecided" style="font-size:11px;color:#94a3b8;text-align:center;margin-top:4px">
+              Review all invoices to submit
+            </p>
+          </div>
+        </div>
+
+        <!-- ── Center Panel: Document Viewer ────────────────────────────── -->
+        <div class="panel-center">
+          <!-- Tab bar -->
+          <div class="tab-bar">
+            <template x-for="tab in openTabs" :key="tab.id">
+              <div class="tab" :class="{ active: activeDocId === tab.id }" @click="activeDocId = tab.id">
+                <span x-text="tab.filename.endsWith('.pdf') ? '📄' : '📊'"></span>
+                <span x-text="shortName(tab.display_name || tab.filename)"></span>
+                <span class="tab-close" @click.stop="closeTab(tab.id)">×</span>
+              </div>
+            </template>
+          </div>
+
+          <!-- Viewer area -->
+          <div class="doc-viewer">
+            <template x-if="activeDoc && activeDoc.filename.toLowerCase().endsWith('.pdf')">
+              <iframe :src="`/api/documents/${activeDoc.id}/content`" title="PDF viewer"></iframe>
+            </template>
+            <template x-if="activeDoc && !activeDoc.filename.toLowerCase().endsWith('.pdf')">
+              <div class="csv-viewer">
+                <div x-show="csvLoading" class="loading">Loading...</div>
+                <table class="csv-table" x-show="!csvLoading && csvRows.length > 0">
+                  <thead>
+                    <tr>
+                      <template x-for="(header, i) in csvRows[0]" :key="i">
+                        <th x-text="header"></th>
+                      </template>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <template x-for="(row, ri) in csvRows.slice(1)" :key="ri">
+                      <tr>
+                        <template x-for="(cell, ci) in row" :key="ci">
+                          <td x-text="cell"></td>
+                        </template>
+                      </tr>
+                    </template>
+                  </tbody>
+                </table>
+              </div>
+            </template>
+            <template x-if="!activeDoc">
+              <div class="doc-empty">
+                <div class="icon">📂</div>
+                <p>Select an invoice from the left panel</p>
+              </div>
+            </template>
+          </div>
+
+          <!-- Decision bar (only for invoice docs with rubric) -->
+          <template x-if="activeDoc && activeDocIsInvoice">
+            <div class="decision-bar">
+              <div style="font-size:11px;font-weight:700;color:#475569;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:6px">
+                Your Decision
+              </div>
+              <div class="decision-controls">
+                <div class="action-toggle">
+                  <button class="action-btn approve" :class="{ active: currentDecision.action === 'approve' }"
+                    @click="setAction('approve')">✅ Approve</button>
+                  <button class="action-btn flag" :class="{ active: currentDecision.action === 'flag' }"
+                    @click="setAction('flag')">🚩 Flag</button>
+                </div>
+                <div class="decision-fields" x-show="currentDecision.action">
+                  <select x-show="currentDecision.action === 'flag'" x-model="currentDecision.error_category">
+                    <option value="">Error category...</option>
+                    <option value="tax_rate">Tax Rate Error</option>
+                    <option value="duplicate">Duplicate Invoice</option>
+                    <option value="quantity_mismatch">Quantity Mismatch</option>
+                    <option value="rate_mismatch">Rate Mismatch</option>
+                    <option value="math_error">Math Error</option>
+                    <option value="other">Other</option>
+                  </select>
+                  <textarea x-model="currentDecision.notes" placeholder="Notes (optional)..." rows="2"></textarea>
+                  <button class="btn btn-primary btn-sm" @click="saveDecision()">Save</button>
+                </div>
+              </div>
+            </div>
+          </template>
+        </div>
+
+        <!-- ── Right Panel: AI Chat ──────────────────────────────────────── -->
+        <div class="panel-right">
+          <div class="chat-header">
+            <h3>🤖 AI Assistant</h3>
+            <p>Ask about invoices. Drag documents from the left panel to attach them.</p>
+          </div>
+
+          <!-- Drop zone for attached documents -->
+          <div class="drop-zone"
+            @dragover.prevent="$el.classList.add('drag-over')"
+            @dragleave="$el.classList.remove('drag-over')"
+            @drop.prevent="attachDoc($event)">
+            <template x-if="attachedDocs.length === 0">
+              <span>Drop documents here to attach to your question</span>
+            </template>
+            <template x-for="doc in attachedDocs" :key="doc.id">
+              <span class="doc-pill">
+                📄 <span x-text="shortName(doc.filename)"></span>
+                <button @click="removeAttached(doc.id)">×</button>
+              </span>
+            </template>
+          </div>
+
+          <!-- Chat messages -->
+          <div class="chat-messages" x-ref="chatMessages">
+            <template x-if="chatMessages.length === 0">
+              <div style="color:#94a3b8;font-size:12px;text-align:center;padding:16px">
+                No messages yet. Ask the AI a question!
+              </div>
+            </template>
+            <template x-for="msg in chatMessages" :key="msg.id">
+              <div class="chat-msg" :class="msg.role" x-text="msg.content"></div>
+            </template>
+            <div x-show="aiTyping" class="typing-indicator">
+              <div class="typing-dot"></div>
+              <div class="typing-dot"></div>
+              <div class="typing-dot"></div>
+            </div>
+          </div>
+
+          <!-- Input area -->
+          <div class="chat-input-area">
+            <textarea x-model="chatInput" placeholder="Ask the AI about an invoice..."
+              @keydown.enter.exact.prevent="sendChat()"
+              rows="2"></textarea>
+            <button class="chat-send-btn" :disabled="!chatInput.trim() || aiTyping" @click="sendChat()">➤</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </template>
+
+  <!-- ─── RESULTS PAGE ──────────────────────────────────────────────────── -->
+  <template x-if="view === 'results'">
+    <div class="page">
+      <nav class="navbar">
+        <span class="navbar-brand"><span class="icon">📊</span> Finance Sim</span>
+      </nav>
+      <div class="results-page">
+        <div class="results-hero">
+          <div class="accuracy-display"
+            :class="{
+              excellent: results.accuracy >= 90,
+              good: results.accuracy >= 70 && results.accuracy < 90,
+              'needs-work': results.accuracy >= 50 && results.accuracy < 70,
+              poor: results.accuracy < 50
+            }"
+            x-text="`${results.accuracy}%`"></div>
+          <h2>Accuracy</h2>
+          <div class="results-meta">
+            <span x-text="`✅ ${results.score_correct} / ${results.score_total} correct`"></span>
+            <span x-text="results.elapsed_seconds ? `⏱ ${formatTime(results.elapsed_seconds)}` : ''"></span>
+          </div>
+        </div>
+
+        <h3 style="margin-bottom:12px">Invoice-by-Invoice Breakdown</h3>
+        <table class="results-table">
+          <thead>
+            <tr>
+              <th>Invoice</th>
+              <th>Your Decision</th>
+              <th>Correct</th>
+              <th>Result</th>
+              <th>Error</th>
+            </tr>
+          </thead>
+          <tbody>
+            <template x-for="item in results.breakdown" :key="item.document_id">
+              <tr>
+                <td x-text="item.document_name"></td>
+                <td x-text="item.learner_action ? (item.learner_action === 'approve' ? '✅ Approve' : '🚩 Flag') : '—'"></td>
+                <td x-text="item.correct_action === 'approve' ? '✅ Approve' : '🚩 Flag'"></td>
+                <td>
+                  <span :class="item.is_correct ? 'result-correct' : 'result-incorrect'"
+                    x-text="item.is_correct ? '✓ Correct' : '✗ Wrong'"></span>
+                </td>
+                <td style="font-size:12px;color:#64748b" x-text="item.error_description || '—'"></td>
+              </tr>
+            </template>
+          </tbody>
+        </table>
+
+        <div class="results-actions">
+          <button class="btn btn-outline" @click="viewChatLog()">💬 Review AI Chat</button>
+          <button class="btn btn-primary" @click="navigate('learner')">▶️ Try Another</button>
+        </div>
+
+        <!-- Chat log modal area -->
+        <template x-if="showChatLog">
+          <div style="margin-top:32px">
+            <h3 style="margin-bottom:12px">💬 AI Chat Log</h3>
+            <div style="background:#fff;border-radius:10px;padding:16px;box-shadow:0 1px 4px rgba(0,0,0,0.07)">
+              <template x-if="chatLogMessages.length === 0">
+                <p style="color:#94a3b8;text-align:center">No chat messages in this session.</p>
+              </template>
+              <div style="display:flex;flex-direction:column;gap:10px">
+                <template x-for="msg in chatLogMessages" :key="msg.id">
+                  <div style="display:flex;gap:8px;align-items:flex-start">
+                    <span style="font-size:18px" x-text="msg.role === 'user' ? '👤' : '🤖'"></span>
+                    <div>
+                      <div style="font-size:11px;font-weight:700;color:#64748b;margin-bottom:2px"
+                        x-text="msg.role === 'user' ? 'You' : 'AI Assistant'"></div>
+                      <div style="font-size:13px;white-space:pre-wrap" x-text="msg.content"></div>
+                    </div>
+                  </div>
+                </template>
+              </div>
+            </div>
+          </div>
+        </template>
+      </div>
+    </div>
+  </template>
+
+</div>
+
+<!-- Alpine.js CDN -->
+<script src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.8/dist/cdn.min.js" defer></script>
+<script src="/app.js"></script>
+</body>
+</html>
