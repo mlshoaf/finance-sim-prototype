@@ -10,6 +10,7 @@ const express = require('express');
 const path = require('path');
 const fs = require('fs');
 const multer = require('multer');
+const rateLimit = require('express-rate-limit');
 const pdfParse = require('pdf-parse');
 const { initDb } = require('./db');
 const { chat } = require('./agent');
@@ -22,6 +23,26 @@ const db = initDb();
 
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'static')));
+
+// General API rate limiter: 200 requests per minute per IP
+const apiLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 200,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Too many requests — please slow down.' },
+});
+
+// Stricter limiter for AI chat: 20 requests per minute per IP
+const chatLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 20,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'AI chat rate limit exceeded — please wait before sending more messages.' },
+});
+
+app.use('/api/', apiLimiter);
 
 // ─── File upload configuration ────────────────────────────────────────────────
 
@@ -385,7 +406,7 @@ app.get('/api/sessions/:id/score', (req, res) => {
 // ─── AI AGENT ROUTES ──────────────────────────────────────────────────────────
 
 // POST /api/agent/chat — send message to Claude
-app.post('/api/agent/chat', async (req, res) => {
+app.post('/api/agent/chat', chatLimiter, async (req, res) => {
   const { session_id, message, attached_doc_ids } = req.body;
   if (!session_id || !message) {
     return res.status(400).json({ error: 'session_id and message are required' });
@@ -416,6 +437,6 @@ app.get('/api/sessions/:id/chat', (req, res) => {
 
 // ─── Start server ─────────────────────────────────────────────────────────────
 
-app.listen(PORT, () => {
+app.listen(PORT, '0.0.0.0', () => {
   console.log(`Finance Simulation server running on http://localhost:${PORT}`);
 });
