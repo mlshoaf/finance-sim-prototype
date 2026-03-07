@@ -6,53 +6,6 @@ The platform ships with a pre-loaded scenario: reviewing 10 CloudSync Pro invoic
 
 ---
 
-## 🚨 If the app looks wrong or buttons don't work — start here
-
-> **Are you seeing a page titled "Finance Sim Prototype" with cards like "AI-Powered Simulations" and "Structured Learning Paths"?**
-> That is an older AI-generated placeholder that Replit may have created automatically.
-> The real app (this codebase) shows two role cards: **Instructor** and **Learner**.
-
-Follow these steps to load the correct code and get the buttons working:
-
-### Step 1 — Open the Shell in Replit
-
-The Shell lets you run commands. Find it one of these ways:
-
-- **Option A (easiest):** Look at the **bottom of the screen** in Replit — there is a row of tabs. Click the one labelled **Shell** or **Console** or **Terminal**.
-- **Option B:** Click the **Tools** icon (☰ or a wrench 🔧) in the **left sidebar** → select **Shell**.
-- **Option C:** Press **Ctrl + \`** (backtick) — this is the standard keyboard shortcut for opening a terminal in most editors.
-- **Option D:** In the **top menu bar**, look for **Tools → Shell**.
-
-You will see a blinking cursor. You are in the Shell.
-
-### Step 2 — Pull this branch and install dependencies
-
-Copy and paste **each line one at a time**, pressing Enter after each:
-
-```bash
-git fetch origin
-git checkout copilot/build-lms-prototype-ai-invoice-review
-npm install
-```
-
-### Step 3 — Click ▶ Run
-
-Click the green **Run** button at the top of Replit. You should see:
-
-```
-Finance Simulation server running on http://localhost:3000
-```
-
-### Step 4 — Open the app
-
-The **Webview** panel should open automatically. If not:
-- Click **Open in new tab** (the pop-out icon at the top of the Webview panel)
-- Or navigate your browser directly to the Replit preview URL
-
-You should now see two large cards: **Instructor** and **Learner**. Clicking them navigates to the right pages.
-
----
-
 ## Roles
 
 - **Instructor** — Create scenarios, upload invoice and reference documents, configure the answer key (rubric)
@@ -60,29 +13,26 @@ You should now see two large cards: **Instructor** and **Learner**. Clicking the
 
 ---
 
-## Quick Start (fresh install)
+## Quick Start
 
-### On Replit
+### On Replit (recommended)
 
 1. Import this repository into [Replit](https://replit.com) using **+ Create Repl → Import from GitHub**
-2. In the **Shell**, run:
-   ```bash
-   git checkout copilot/build-lms-prototype-ai-invoice-review
-   npm install
-   ```
-3. Go to **Tools → Secrets** (🔒 lock icon in the left sidebar) and add:
+2. Go to **Tools → Secrets** (🔒 lock icon in the left sidebar) and add:
    - Key: `ANTHROPIC_API_KEY`
    - Value: your Anthropic API key
-4. Click **▶ Run** — the app generates PDFs, seeds data, and starts automatically
-5. The app opens in the Replit Webview on port 3000
+3. Click **▶ Run** — the app installs dependencies, generates PDFs, seeds data, and starts automatically
+4. The app opens in the Replit Webview — you should see two cards: **Instructor** and **Learner**
+
+> **Note:** The Run button is configured to run `npm install && npm start` automatically.
+> You do **not** need to open the Shell for a fresh import.
 
 ### Local Development
 
-1. Clone the repo and checkout the branch:
+1. Clone the repo:
    ```bash
    git clone https://github.com/mlshoaf/finance-sim-prototype
    cd finance-sim-prototype
-   git checkout copilot/build-lms-prototype-ai-invoice-review
    ```
 2. Install dependencies:
    ```bash
@@ -136,11 +86,11 @@ You should now see two large cards: **Instructor** and **Learner**. Clicking the
 
 | Symptom | Cause | Fix |
 |---|---|---|
-| Seeing "Finance Sim Prototype" with feature cards | Running old Replit AI-generated code | See **🚨 top of this README** — pull the correct branch |
-| Clicking cards/buttons does nothing | Wrong branch or old cached page | Hard-refresh: **Ctrl+Shift+R** (Windows/Linux) or **Cmd+Shift+R** (Mac) |
-| Page is blank for a few seconds then shows error banner | Alpine.js didn't load (usually `node_modules` missing) | In Shell: `npm install`, then click Run again |
+| Seeing "Finance Sim Prototype" with feature cards (AI-Powered Simulations, etc.) | Old Replit AI-generated placeholder code; Replit was showing a different workspace | Delete the Repl and re-import from this GitHub repo |
+| Clicking cards/buttons does nothing | Old cached page in the Webview | Hard-refresh: **Ctrl+Shift+R** (Windows/Linux) or **Cmd+Shift+R** (Mac) |
+| Page is blank for a few seconds then shows error banner | Alpine.js didn't initialize | Open Shell and run `npm install`, then click Run |
 | AI chat returns an error | `ANTHROPIC_API_KEY` missing or wrong | Re-add the key in 🔒 **Secrets**, then click Run |
-| "Module not found" on startup | `node_modules` not installed | In Shell: `npm install` |
+| "Module not found" on startup | `node_modules` not installed | Open Shell and run `npm install` |
 | App shows old/stale content after clicking Run | Replit cached the previous server | In Webview, click **Open in new tab** to bypass iframe caching |
 
 ---
