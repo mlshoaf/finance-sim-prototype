@@ -1,6 +1,6 @@
 {
   "name": "Finance Sim Prototype",
-  "image": "mcr.microsoft.com/devcontainers/javascript-node:20",
+  "image": "mcr.microsoft.com/devcontainers/javascript-node:22",
   "forwardPorts": [3000],
   "portsAttributes": {
     "3000": {
@@ -11,9 +11,9 @@
   // postCreateCommand runs once when the container is first created
   "postCreateCommand": "npm install",
   // postStartCommand runs every time the codespace is resumed —
-  // installs any new packages then starts the server in the background.
-  // Using nohup ensures the process survives the postStartCommand shell exiting.
-  "postStartCommand": "npm install --prefer-offline && nohup npm start > /tmp/finance-sim.log 2>&1 &",
+  // installs any new packages, rebuilds native modules for the current Node.js
+  // version (prevents better-sqlite3 ABI mismatch errors), then starts the server.
+  "postStartCommand": "npm install --prefer-offline && npm rebuild && nohup npm start > /tmp/finance-sim.log 2>&1 &",
   "customizations": {
     "vscode": {
       "extensions": [

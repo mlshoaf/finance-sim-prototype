@@ -179,6 +179,7 @@ To manually stop it (e.g., to save hours): go to **[github.com/codespaces](https
 | Symptom | Fix |
 |---------|-----|
 | App tab shows "This site can't be reached" or "502 Bad Gateway" | The server isn't running — check `/tmp/finance-sim.log` for errors. If the log looks clean, run: `pkill -f 'node server.js' 2>/dev/null; npm start` in a New Terminal |
+| `ERR_DLOPEN_FAILED` / "compiled against a different Node.js version" | Native module ABI mismatch — run `npm rebuild` in the terminal, then `npm start` |
 | AI chat returns "ANTHROPIC_API_KEY" error | The secret wasn't found — double-check [Part 1](#part-1--one-time-setup-do-this-once-ever): the secret name must be exactly `ANTHROPIC_API_KEY` and the repo must be selected |
 | Server didn't auto-start | Check `/tmp/finance-sim.log` for errors: `cat /tmp/finance-sim.log`. Then run: `npm start` in a New Terminal |
 | Port 3000 not listed in Ports tab | Run `npm start` in a New Terminal — the port appears once the server starts |
