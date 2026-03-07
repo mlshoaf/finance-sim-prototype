@@ -138,6 +138,7 @@ A `Dockerfile` is included in this repo so `fly launch` works out of the box.
 
 | Symptom | Cause | Fix |
 |---|---|---|
+| **"502 Bad Gateway"** in Codespaces | Server not running — auto-start task may not have fired | Open a **New Terminal** (Terminal menu) and run `npm start` |
 | Seeing "Finance Sim Prototype" with feature cards (AI-Powered Simulations, etc.) | Old Replit AI-generated placeholder code; Replit was showing a different workspace | Delete the Repl and re-import from this GitHub repo |
 | Clicking cards/buttons does nothing | Old cached page in the Webview | Hard-refresh: **Ctrl+Shift+R** (Windows/Linux) or **Cmd+Shift+R** (Mac) |
 | Page is blank for a few seconds then shows error banner | Alpine.js didn't initialize | Run `npm install` in the terminal, then `npm start` |

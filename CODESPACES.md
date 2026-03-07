@@ -183,9 +183,9 @@ To manually stop it (e.g., to save hours): go to **[github.com/codespaces](https
 
 | Symptom | Fix |
 |---------|-----|
-| App tab shows "This site can't be reached" | The server isn't running yet — wait for "Finance Sim Server" terminal to show the "running on port 3000" message, or run `npm start` manually in the terminal |
+| App tab shows "This site can't be reached" or "502 Bad Gateway" | The server isn't running — open a **New Terminal** (Terminal menu → New Terminal) and run `npm start`. Wait for "running on port 3000" then refresh the app tab |
 | AI chat returns "ANTHROPIC_API_KEY" error | The secret wasn't found — double-check [Part 1](#part-1--one-time-setup-do-this-once-ever): the secret name must be exactly `ANTHROPIC_API_KEY` and the repo must be selected |
-| "Start Finance Sim" task didn't auto-run | VS Code may have asked for permission — look for a notification at the bottom of the screen and click "Allow" |
+| "Start Finance Sim" task didn't auto-run | Run `npm start` manually in the terminal (Terminal menu → New Terminal). Future sessions will auto-start because the workspace now allows automatic tasks |
 | Port 3000 not listed in Ports tab | Run `npm start` manually in the terminal — the port appears once the server starts |
 | `npm install` fails | Run `npm install` manually in the terminal and check the error output |
 | Changes not showing in the app | Hard-refresh: **Ctrl+Shift+R** (Windows/Linux) or **Cmd+Shift+R** (Mac). If that doesn't help, restart the server |
