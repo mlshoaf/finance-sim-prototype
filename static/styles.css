@@ -1,6 +1,10 @@
 /* styles.css — Finance Simulation Prototype Styles
    Clean, professional, neutral palette for finance context */
 
+/* ─── Alpine.js cloak — hides app until Alpine initializes ─────────────────── */
+
+[x-cloak] { display: none !important; }
+
 /* ─── Reset & Base ─────────────────────────────────────────────────────────── */
 
 *, *::before, *::after {

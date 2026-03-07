@@ -8,7 +8,7 @@
 </head>
 <body>
 
-<div id="app" x-data="app()" x-init="init()">
+<div id="app" x-data="app()" x-cloak>
 
   <!-- ─── ROLE SELECTION ──────────────────────────────────────────────────── -->
   <div x-show="view === 'home'" class="role-page">
@@ -509,8 +509,41 @@
 
 </div>
 
-<!-- Alpine.js (served locally — no CDN dependency) -->
+<!-- app.js must be deferred and listed BEFORE Alpine so it always runs first.
+     Both scripts are deferred: they download in parallel then execute in order
+     after HTML parsing, guaranteeing window.app() is defined before Alpine starts. -->
+<script src="/app.js" defer></script>
 <script src="/vendor/alpine.js" defer></script>
-<script src="/app.js"></script>
+
+<!-- Alpine initialization guard: if Alpine hasn't started within the timeout, show an error.
+     This catches CDN failures, npm install issues, or browser caching of old code. -->
+<script>
+  window.addEventListener('load', function () {
+    var ALPINE_INIT_TIMEOUT_MS = 4000; // generous timeout for slow connections
+    setTimeout(function () {
+      var appEl = document.getElementById('app');
+      if (appEl && appEl.hasAttribute('x-cloak')) {
+        // x-cloak is still present → Alpine never initialized
+        appEl.removeAttribute('x-cloak'); // reveal the page anyway
+        var banner = document.createElement('div');
+        banner.style.cssText = [
+          'position:fixed;top:0;left:0;right:0;z-index:9999',
+          'background:#dc2626;color:#fff;padding:14px 20px',
+          'font-family:sans-serif;font-size:14px;line-height:1.5',
+          'display:flex;align-items:center;gap:12px',
+        ].join(';');
+        banner.innerHTML = [
+          '<span style="font-size:20px">⚠️</span>',
+          '<span>',
+          '<strong>UI framework failed to load — buttons will not work.</strong><br>',
+          'Try: hard-refresh the page (Ctrl+Shift+R / Cmd+Shift+R), ',
+          'or restart the server and reload.',
+          '</span>',
+        ].join('');
+        document.body.prepend(banner);
+      }
+    }, ALPINE_INIT_TIMEOUT_MS);
+  });
+</script>
 </body>
 </html>
