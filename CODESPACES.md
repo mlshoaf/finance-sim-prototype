@@ -62,17 +62,12 @@ Once the codespace finishes loading, several things happen on their own:
 | Container starts | GitHub boots the cloud VM | Loading spinner |
 | `npm install` runs | Installs all dependencies | "postCreateCommand" in the creation log |
 | VS Code opens | Browser-based IDE appears | Editor with file tree on the left |
-| **"Start Finance Sim" task runs** | `npm start` launches the server | A terminal tab labeled "Finance Sim Server" opens with server logs |
+| **Server starts automatically** | `npm start` launches via `postStartCommand` | Port 3000 becomes active (no action needed) |
 | Port 3000 is forwarded | Your app is accessible | A toast notification in the bottom-right corner |
 
 ### Step 2C — Open the app
 
-After the "Finance Sim Server" terminal shows:
-```
-Finance Simulation server running on http://localhost:3000
-```
-
-You have two ways to open the app:
+Wait a few seconds for the server to start, then open the app one of two ways:
 
 **Option A:** Click the toast notification that says **"Open in Browser"** (appears bottom-right)
 
@@ -118,9 +113,9 @@ This is where Codespaces really shines. You can edit code and see changes immedi
 ### Seeing your changes
 
 - **Backend changes** (e.g., `server.js`, `agent.js`, `db.js`): you need to restart the server
-  - Click the "Finance Sim Server" terminal tab
-  - Press **Ctrl+C** to stop the server
-  - Run `npm start` to restart it
+  - Use **Terminal → Run Task → Restart Finance Sim** — this stops the running server and starts a fresh one
+  - Or, in any terminal: `pkill -f 'node server.js'; sleep 2 && npm start`
+  - **Note:** Do not run a bare `npm start` in a new terminal — a server is already running in the background and it will cause a port conflict
 
 - **Frontend changes** (e.g., `static/index.html`, `static/app.js`, `static/styles.css`): just hard-refresh the app tab (**Ctrl+Shift+R** or **Cmd+Shift+R**)
 
@@ -183,12 +178,12 @@ To manually stop it (e.g., to save hours): go to **[github.com/codespaces](https
 
 | Symptom | Fix |
 |---------|-----|
-| App tab shows "This site can't be reached" or "502 Bad Gateway" | The server isn't running — open a **New Terminal** (Terminal menu → New Terminal) and run `npm start`. Wait for "running on port 3000" then refresh the app tab |
+| App tab shows "This site can't be reached" or "502 Bad Gateway" | The server isn't running — check `/tmp/finance-sim.log` for errors. If the log looks clean, run: `pkill -f 'node server.js' 2>/dev/null; npm start` in a New Terminal |
 | AI chat returns "ANTHROPIC_API_KEY" error | The secret wasn't found — double-check [Part 1](#part-1--one-time-setup-do-this-once-ever): the secret name must be exactly `ANTHROPIC_API_KEY` and the repo must be selected |
-| "Start Finance Sim" task didn't auto-run | Run `npm start` manually in the terminal (Terminal menu → New Terminal). Future sessions will auto-start because the workspace now allows automatic tasks |
-| Port 3000 not listed in Ports tab | Run `npm start` manually in the terminal — the port appears once the server starts |
+| Server didn't auto-start | Check `/tmp/finance-sim.log` for errors: `cat /tmp/finance-sim.log`. Then run: `npm start` in a New Terminal |
+| Port 3000 not listed in Ports tab | Run `npm start` in a New Terminal — the port appears once the server starts |
 | `npm install` fails | Run `npm install` manually in the terminal and check the error output |
-| Changes not showing in the app | Hard-refresh: **Ctrl+Shift+R** (Windows/Linux) or **Cmd+Shift+R** (Mac). If that doesn't help, restart the server |
+| Changes not showing in the app | Hard-refresh: **Ctrl+Shift+R** (Windows/Linux) or **Cmd+Shift+R** (Mac). If that doesn't help, restart the server via **Terminal → Run Task → Restart Finance Sim** |
 | Codespace won't start | Go to [github.com/codespaces](https://github.com/codespaces), delete the codespace, and create a new one — your committed code is safe in GitHub |
 
 ---
@@ -198,8 +193,8 @@ To manually stop it (e.g., to save hours): go to **[github.com/codespaces](https
 | Task | How |
 |------|-----|
 | Open the app | Ports tab → 🌐 icon next to port 3000 |
-| Restart the server | Click "Finance Sim Server" terminal → Ctrl+C → `npm start` |
-| View server logs | "Finance Sim Server" terminal tab |
+| Restart the server | **Terminal → Run Task → Restart Finance Sim** |
+| View server logs | `cat /tmp/finance-sim.log` in a terminal |
 | Commit changes | Source Control sidebar (Ctrl+Shift+G) |
 | Pull latest code | `git pull` in the terminal |
 | Stop codespace | Close the browser tab |
