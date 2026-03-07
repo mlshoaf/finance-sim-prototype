@@ -44,12 +44,6 @@ const chatLimiter = rateLimit({
 
 app.use('/api/', apiLimiter);
 
-// Serve Alpine.js from node_modules so the app works without external CDN access
-// (Required for Replit, where the webview may block third-party CDN requests)
-app.get('/vendor/alpine.js', apiLimiter, (req, res) => {
-  res.sendFile(path.join(__dirname, 'node_modules', 'alpinejs', 'dist', 'cdn.min.js'));
-});
-
 // ─── File upload configuration ────────────────────────────────────────────────
 
 function scenarioStorage(scenarioId) {
