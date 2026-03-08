@@ -47,7 +47,7 @@ If your Codespace is open but the app looks like an earlier version — for exam
 | AI chat | Responds as an accounts-payable assistant, aware of the uploaded contract and rate card |
 | Results page | Score + per-invoice breakdown with correct/incorrect labels |
 
-> **Why this happens:** Codespaces cache the repo at the point when the container was first created. If new commits land on `main` after your Codespace was built, you need to `git pull` to get them. The `postStartCommand` in `devcontainer.json` only reinstalls packages — it does not auto-pull new commits.
+> **Why this happens:** Codespaces cache the repo at the point when the container was first created. The `postStartCommand` in `devcontainer.json` now auto-pulls from `main` on every start, so **newly created or rebuilt Codespaces** will always stay current. However, Codespaces that were created *before this fix* was merged will not have the auto-pull behavior until you either rebuild the container (**Ctrl+Shift+P → "Rebuild Container"**) or run the pull task manually as shown above.
 
 ---
 
@@ -278,7 +278,7 @@ To manually stop it (e.g., to save hours): go to **[github.com/codespaces](https
 
 | Symptom | Fix |
 |---------|-----|
-| **Still seeing the old version** after `npm start` | Your Codespace is on the old `main` branch. See the **🚨 Seeing the Old Version?** section at the top of this file — use **Terminal → Run Task → ⬇️ Pull Latest Code & Restart** |
+| **Auto-pull didn't happen / still on old version** | Check `/tmp/finance-sim.log` — the start script logs git pull results there. If pull failed, run **Terminal → Run Task → ⬇️ Pull Latest Code & Restart**. See the **🚨 Seeing the Old Version?** section for details. |
 | App tab shows "This site can't be reached" or "502 Bad Gateway" | The server isn't running — check `/tmp/finance-sim.log` for errors. If the log looks clean, run: `pkill -f 'node server.js' 2>/dev/null; npm start` in a New Terminal |
 | `ERR_DLOPEN_FAILED` / "compiled against a different Node.js version" | Native module ABI mismatch — run `npm rebuild` in the terminal, then `npm start` |
 | AI chat returns "ANTHROPIC_API_KEY" error | The secret wasn't found — double-check [Part 1](#part-1--one-time-setup-do-this-once-ever): the secret name must be exactly `ANTHROPIC_API_KEY` and the repo must be selected |
