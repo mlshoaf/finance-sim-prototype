@@ -1,0 +1,22 @@
+# render.yaml — Render deployment configuration
+# https://render.com/docs/render-yaml-spec
+#
+# Deploy steps:
+#   1. Go to https://dashboard.render.com/
+#   2. Click "New +" → "Blueprint"
+#   3. Connect your GitHub repo → Render picks up this file automatically
+#   4. Add the ANTHROPIC_API_KEY environment variable in the Render dashboard
+
+services:
+  - type: web
+    name: finance-sim-prototype
+    runtime: node
+    plan: free
+    buildCommand: npm install
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: ANTHROPIC_API_KEY
+        sync: false   # Set this manually in the Render dashboard
+    healthCheckPath: /

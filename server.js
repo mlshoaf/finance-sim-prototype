@@ -13,13 +13,62 @@ const multer = require('multer');
 const rateLimit = require('express-rate-limit');
 const pdfParse = require('pdf-parse');
 const { initDb } = require('./db');
-const { chat } = require('./agent');
+const { chat, instructorChat } = require('./agent');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 const db = initDb();
 
-// ─── Middleware ───────────────────────────────────────────────────────────────
+// Scenario template presets
+const SCENARIO_TEMPLATES = {
+  billing: {
+    title: 'CloudSync Pro Invoice Review',
+    description: 'Review invoices from a SaaS vendor against the master contract. Identify errors in tax rates, quantities, unit prices, and duplicate charges.',
+    scenario_config: JSON.stringify({
+      domain: 'Accounts Payable Review',
+      agent_persona: 'You are an accounts payable review assistant at Meridian Corp. The user is a finance analyst reviewing vendor invoices from CloudSync Pro, Inc. against a master contract (Contract #CSP-ENT-2026).\n\nYou can help analyze invoices, cross-reference against contract terms, spot mathematical errors, identify duplicate charges, and explain your reasoning.\n\nBe helpful but not proactive — respond to what the user asks. If you find a discrepancy, explain clearly what the expected value should be and what the invoice shows. If everything looks correct, say so.\n\nOnly reference information from documents the user has shared with you in this conversation. Do not fabricate data.',
+      primary_doc_type_label: 'Invoice Documents',
+      reference_doc_type_label: 'Reference Documents',
+      decision_options: [
+        { value: 'approve', label: '✅ Approve' },
+        { value: 'flag', label: '🚩 Flag' },
+      ],
+      error_categories: [
+        { value: 'tax_rate', label: 'Tax Rate Error' },
+        { value: 'duplicate', label: 'Duplicate Invoice' },
+        { value: 'quantity_mismatch', label: 'Quantity Mismatch' },
+        { value: 'rate_mismatch', label: 'Rate Mismatch' },
+        { value: 'math_error', label: 'Math Error' },
+        { value: 'other', label: 'Other' },
+      ],
+    }),
+  },
+  fraud: {
+    title: 'Employee Timesheet Fraud Detection',
+    description: 'Review employee timesheet submissions for billing fraud. Identify invalid project codes, excessive hours, unauthorized weekend billing, and duplicate entries.',
+    scenario_config: JSON.stringify({
+      domain: 'Timesheet Fraud Detection',
+      agent_persona: 'You are a payroll compliance assistant at Acme Corp. You have access to the company\'s timesheet policy document and the employee records the analyst has shared with you. Help the analyst understand what the policy says and what the data shows. Ask clarifying questions when needed. Do not tell the analyst whether a timesheet is fraudulent — help them reason through it themselves. Only reference information from documents shared in this conversation. Do not fabricate data.',
+      primary_doc_type_label: 'Timesheet Records',
+      reference_doc_type_label: 'Policy & Rate Documents',
+      decision_options: [
+        { value: 'legitimate', label: '✅ Legitimate' },
+        { value: 'suspicious', label: '🚨 Suspicious' },
+        { value: 'needs_review', label: '🔍 Escalate for Review' },
+      ],
+      error_categories: [
+        { value: 'invalid_project_code', label: 'Invalid/Unapproved Project Code' },
+        { value: 'excessive_hours', label: 'Excessive Hours (Exceeds Policy Cap)' },
+        { value: 'weekend_no_approval', label: 'Weekend Billing Without Approval' },
+        { value: 'duplicate_entry', label: 'Duplicate Entry' },
+        { value: 'rate_mismatch', label: 'Rate Mismatch vs. Contract' },
+        { value: 'other', label: 'Other' },
+      ],
+    }),
+  },
+};
+
+
 
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'static')));
@@ -99,23 +148,29 @@ app.get('/api/scenarios', (req, res) => {
 
 // POST /api/scenarios — create new scenario
 app.post('/api/scenarios', (req, res) => {
-  const { title, description } = req.body;
-  if (!title) return res.status(400).json({ error: 'title is required' });
+  const { title, description, template } = req.body;
+
+  // Apply a template preset if requested
+  const preset = template ? SCENARIO_TEMPLATES[template] : null;
+  const finalTitle = title || (preset && preset.title) || 'New Scenario';
+  const finalDesc = description || (preset && preset.description) || '';
+  const finalConfig = (preset && preset.scenario_config) || req.body.scenario_config || '{}';
+
   const result = db.prepare(`
-    INSERT INTO scenarios (title, description, status) VALUES (?, ?, 'draft')
-  `).run(title, description || '');
+    INSERT INTO scenarios (title, description, status, scenario_config) VALUES (?, ?, 'draft', ?)
+  `).run(finalTitle, finalDesc, finalConfig);
   const scenario = db.prepare('SELECT * FROM scenarios WHERE id = ?').get(result.lastInsertRowid);
   res.status(201).json(scenario);
 });
 
 // PUT /api/scenarios/:id — update scenario
 app.put('/api/scenarios/:id', (req, res) => {
-  const { title, description, status } = req.body;
+  const { title, description, status, scenario_config } = req.body;
   const id = Number(req.params.id);
   db.prepare(`
     UPDATE scenarios SET title = COALESCE(?, title), description = COALESCE(?, description),
-    status = COALESCE(?, status) WHERE id = ?
-  `).run(title, description, status, id);
+    status = COALESCE(?, status), scenario_config = COALESCE(?, scenario_config) WHERE id = ?
+  `).run(title, description, status, scenario_config, id);
   const scenario = db.prepare('SELECT * FROM scenarios WHERE id = ?').get(id);
   if (!scenario) return res.status(404).json({ error: 'Scenario not found' });
   res.json(scenario);
@@ -141,7 +196,7 @@ app.post('/api/scenarios/:id/documents', (req, res) => {
   upload(req, res, (err) => {
     if (err) return res.status(500).json({ error: err.message });
 
-    const docType = req.body.doc_type || 'invoice';
+    const docType = req.body.doc_type || 'primary';
     const docs = [];
 
     for (const file of (req.files || [])) {
@@ -235,9 +290,10 @@ app.get('/api/sessions/:id/documents', (req, res) => {
   if (!session) return res.status(404).json({ error: 'Session not found' });
 
   const docs = db.prepare('SELECT * FROM documents WHERE scenario_id = ?').all(session.scenario_id);
-  const invoices = docs.filter(d => d.doc_type === 'invoice');
+  // Support both legacy 'invoice' doc_type and the new 'primary' doc_type
+  const primary = docs.filter(d => d.doc_type === 'primary' || d.doc_type === 'invoice');
   const reference = docs.filter(d => d.doc_type === 'reference');
-  res.json({ invoices, reference });
+  res.json({ primary, reference });
 });
 
 // GET /api/documents/:id/content — serve the actual file
@@ -405,6 +461,11 @@ app.get('/api/sessions/:id/score', (req, res) => {
 
 // ─── AI AGENT ROUTES ──────────────────────────────────────────────────────────
 
+// GET /api/health — server health and configuration check
+app.get('/api/health', (req, res) => {
+  res.json({ ok: true, apiKeyConfigured: !!process.env.ANTHROPIC_API_KEY });
+});
+
 // POST /api/agent/chat — send message to Claude
 app.post('/api/agent/chat', chatLimiter, async (req, res) => {
   const { session_id, message, attached_doc_ids } = req.body;
@@ -413,11 +474,25 @@ app.post('/api/agent/chat', chatLimiter, async (req, res) => {
   }
 
   try {
+    // Load the per-scenario system prompt from scenario_config.agent_persona
+    let systemPrompt;
+    const session = db.prepare('SELECT scenario_id FROM sessions WHERE id = ?').get(Number(session_id));
+    if (session) {
+      const scenario = db.prepare('SELECT scenario_config FROM scenarios WHERE id = ?').get(session.scenario_id);
+      if (scenario) {
+        try {
+          const config = JSON.parse(scenario.scenario_config || '{}');
+          if (config.agent_persona) systemPrompt = config.agent_persona;
+        } catch (_) {}
+      }
+    }
+
     const response = await chat({
       session_id: Number(session_id),
       message,
       attached_doc_ids: attached_doc_ids || [],
       extractDocText: (docId) => extractDocumentText(docId),
+      systemPrompt,
     });
     res.json({ response });
   } catch (err) {
@@ -435,8 +510,66 @@ app.get('/api/sessions/:id/chat', (req, res) => {
   res.json(messages);
 });
 
+// ─── INSTRUCTOR AI CHAT ROUTES ────────────────────────────────────────────────
+
+// GET /api/scenarios/:id/instructor-chat — return instructor chat history
+app.get('/api/scenarios/:id/instructor-chat', (req, res) => {
+  const scenarioId = Number(req.params.id);
+  const messages = db.prepare(`
+    SELECT * FROM instructor_chat_messages WHERE scenario_id = ? ORDER BY created_at ASC
+  `).all(scenarioId);
+  res.json(messages);
+});
+
+// POST /api/scenarios/:id/instructor-chat — send message to instructor design assistant
+app.post('/api/scenarios/:id/instructor-chat', chatLimiter, async (req, res) => {
+  const scenarioId = Number(req.params.id);
+  const { message } = req.body;
+  if (!message) return res.status(400).json({ error: 'message is required' });
+
+  const scenario = db.prepare('SELECT * FROM scenarios WHERE id = ?').get(scenarioId);
+  if (!scenario) return res.status(404).json({ error: 'Scenario not found' });
+
+  // Build scenario state for stage computation
+  const documents = db.prepare('SELECT * FROM documents WHERE scenario_id = ?').all(scenarioId);
+  const rubric = db.prepare('SELECT * FROM rubric WHERE scenario_id = ?').all(scenarioId);
+  const primaryDocs = documents.filter(d => d.doc_type === 'primary' || d.doc_type === 'invoice');
+
+  let hasPersona = false;
+  try {
+    const config = JSON.parse(scenario.scenario_config || '{}');
+    hasPersona = !!config.agent_persona;
+  } catch (_) {}
+
+  const scenarioState = {
+    title: scenario.title,
+    description: scenario.description || '',
+    primaryDocCount: primaryDocs.length,
+    rubricCount: rubric.length,
+    hasPersona,
+  };
+
+  try {
+    const response = await instructorChat({ scenario_id: scenarioId, message, scenarioState });
+    res.json({ response });
+  } catch (err) {
+    console.error('Instructor AI chat error:', err.message);
+    const statusCode = err.message.includes('ANTHROPIC_API_KEY') ? 503 : 500;
+    res.status(statusCode).json({ error: err.message });
+  }
+});
+
 // ─── Start server ─────────────────────────────────────────────────────────────
 
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`Finance Simulation server running on http://localhost:${PORT}`);
+  if (!process.env.ANTHROPIC_API_KEY) {
+    console.warn(
+      '\n⚠️  WARNING: ANTHROPIC_API_KEY is not set — AI chat will not work.\n' +
+      '   GitHub Codespaces: go to github.com/settings/codespaces → Secrets,\n' +
+      '   add ANTHROPIC_API_KEY (value: sk-ant-...) and grant this repository access,\n' +
+      '   then stop and restart the codespace.\n' +
+      '   Local development: add ANTHROPIC_API_KEY=sk-ant-... to your .env file.\n'
+    );
+  }
 });

@@ -15,19 +15,57 @@ The platform ships with a pre-loaded scenario: reviewing 10 CloudSync Pro invoic
 
 ## Quick Start
 
-### On Replit (recommended)
+### Option 1 — GitHub Codespaces (free, Replit-like experience ★ recommended)
 
-1. Import this repository into [Replit](https://replit.com) using **+ Create Repl → Import from GitHub**
-2. Go to **Tools → Secrets** (🔒 lock icon in the left sidebar) and add:
-   - Key: `ANTHROPIC_API_KEY`
-   - Value: your Anthropic API key
-3. Click **▶ Run** — the app installs dependencies, generates PDFs, seeds data, and starts automatically
-4. The app opens in the Replit Webview — you should see two cards: **Instructor** and **Learner**
+GitHub Codespaces gives you a full VS Code IDE in your browser — no local setup needed. The app starts automatically when you open the codespace.
 
-> **Note:** The Run button is configured to run `npm install && npm start` automatically.
-> You do **not** need to open the Shell for a fresh import.
+Free tier: **60 hours/month** (or 120 h/month with GitHub Pro).
 
-### Local Development
+**➡️ See the full step-by-step guide: [CODESPACES.md](./CODESPACES.md)**
+
+**Short version (if you've used Codespaces before):**
+1. Store `ANTHROPIC_API_KEY` as a [Codespaces secret](https://github.com/settings/codespaces) for this repo (one-time)
+2. Click the green **Code** button → **Codespaces → Create codespace on main**
+3. The container starts, `npm install` runs, then `npm start` launches automatically
+4. Port 3000 auto-forwards → click **Open in Browser**
+
+---
+
+### Option 2 — Render (free hosted deployment, auto-deploys from GitHub)
+
+Render is a free cloud hosting platform. Free tier: **always-on, spins down after 15 minutes of inactivity**.
+
+1. Go to [render.com](https://render.com) and sign in with GitHub
+2. Click **New +** → **Blueprint** and connect this repository
+   - Render will detect `render.yaml` and configure the service automatically
+3. In the **Environment** tab for the new service, add:
+   - Key: `ANTHROPIC_API_KEY` / Value: your Anthropic API key
+4. Click **Deploy** — the app will be live at a `*.onrender.com` URL
+
+> **Note:** Free Render web services spin down after 15 minutes of inactivity
+> and take ~30 seconds to wake up on the next request.
+
+---
+
+### Option 3 — Fly.io (free allowance, Docker-based)
+
+Fly.io has a generous free allowance (3 shared-CPU VMs, 256 MB RAM each).
+
+1. Install the Fly CLI: `curl -L https://fly.io/install.sh | sh`
+2. Sign up / log in: `fly auth login`
+3. From the repo root:
+   ```bash
+   fly launch --no-deploy   # accepts defaults; creates fly.toml
+   fly secrets set ANTHROPIC_API_KEY=your-anthropic-api-key-here
+   fly deploy
+   ```
+4. The app will be live at `https://<app-name>.fly.dev`
+
+A `Dockerfile` is included in this repo so `fly launch` works out of the box.
+
+---
+
+### Option 4 — Local Development
 
 1. Clone the repo:
    ```bash
@@ -50,7 +88,21 @@ The platform ships with a pre-loaded scenario: reviewing 10 CloudSync Pro invoic
 
 ---
 
-## Testing on Replit — Step-by-Step Walkthrough
+### Option 5 — Replit (if you have credits)
+
+1. Import this repository into [Replit](https://replit.com) using **+ Create Repl → Import from GitHub**
+2. Go to **Tools → Secrets** (🔒 lock icon in the left sidebar) and add:
+   - Key: `ANTHROPIC_API_KEY`
+   - Value: your Anthropic API key
+3. Click **▶ Run** — the app installs dependencies, generates PDFs, seeds data, and starts automatically
+4. The app opens in the Replit Webview — you should see two cards: **Instructor** and **Learner**
+
+> **Note:** The Run button is configured to run `npm install && npm start` automatically.
+> You do **not** need to open the Shell for a fresh import.
+
+---
+
+## Testing the App — Step-by-Step Walkthrough
 
 ### Learner flow (main path)
 
@@ -86,12 +138,14 @@ The platform ships with a pre-loaded scenario: reviewing 10 CloudSync Pro invoic
 
 | Symptom | Cause | Fix |
 |---|---|---|
+| **"502 Bad Gateway"** in Codespaces | Server not running — auto-start task may not have fired | Open a **New Terminal** (Terminal menu) and run `npm start` |
 | Seeing "Finance Sim Prototype" with feature cards (AI-Powered Simulations, etc.) | Old Replit AI-generated placeholder code; Replit was showing a different workspace | Delete the Repl and re-import from this GitHub repo |
 | Clicking cards/buttons does nothing | Old cached page in the Webview | Hard-refresh: **Ctrl+Shift+R** (Windows/Linux) or **Cmd+Shift+R** (Mac) |
-| Page is blank for a few seconds then shows error banner | Alpine.js didn't initialize | Open Shell and run `npm install`, then click Run |
-| AI chat returns an error | `ANTHROPIC_API_KEY` missing or wrong | Re-add the key in 🔒 **Secrets**, then click Run |
-| "Module not found" on startup | `node_modules` not installed | Open Shell and run `npm install` |
-| App shows old/stale content after clicking Run | Replit cached the previous server | In Webview, click **Open in new tab** to bypass iframe caching |
+| Page is blank for a few seconds then shows error banner | Alpine.js didn't initialize | Run `npm install` in the terminal, then `npm start` |
+| AI chat returns an error | `ANTHROPIC_API_KEY` missing or wrong | Check your `.env` file (local) or platform secrets |
+| "Module not found" on startup | `node_modules` not installed | Run `npm install` |
+| App shows old/stale content | Browser cache | Hard-refresh: **Ctrl+Shift+R** (Windows/Linux) or **Cmd+Shift+R** (Mac) |
+| Render app is slow to respond | Free tier spins down after 15 min idle | Wait ~30 s for the first request to wake the service |
 
 ---
 
@@ -133,22 +187,29 @@ The platform ships with a pre-loaded scenario: reviewing 10 CloudSync Pro invoic
 
 ```
 finance-sim-prototype/
-├── .replit                      ← Replit run config
-├── replit.nix                   ← Nix packages for Replit
+├── .devcontainer/
+│   └── devcontainer.json            ← GitHub Codespaces config
+├── .vscode/
+│   └── tasks.json                   ← Auto-starts the server on codespace open
+├── .replit                          ← Replit run config
+├── CODESPACES.md                    ← Detailed GitHub Codespaces walkthrough
+├── Dockerfile                       ← Container build (Fly.io, Railway, Render)
+├── render.yaml                      ← Render one-click deploy config
+├── replit.nix                       ← Nix packages for Replit
 ├── package.json
-├── server.js                    ← Express app (all API routes)
-├── db.js                        ← SQLite schema + init
-├── agent.js                     ← Claude API proxy logic
-├── seed.js                      ← Seeds the CloudSync Pro scenario
+├── server.js                        ← Express app (all API routes)
+├── db.js                            ← SQLite schema + init
+├── agent.js                         ← Claude API proxy logic
+├── seed.js                          ← Seeds the CloudSync Pro scenario
 ├── static/
-│   ├── index.html               ← Full SPA (all views)
-│   ├── styles.css               ← Styling
-│   └── app.js                   ← Alpine.js app logic
+│   ├── index.html                   ← Full SPA (all views)
+│   ├── styles.css                   ← Styling
+│   └── app.js                       ← Alpine.js app logic
 ├── data/
-│   ├── invoices/                ← Generated invoice PDFs + CSV
-│   └── reference/               ← Contract PDF + rate card CSV
+│   ├── invoices/                    ← Generated invoice PDFs + CSV
+│   └── reference/                   ← Contract PDF + rate card CSV
 └── scripts/
-    └── generate-pdfs.js         ← Generates all PDFs and CSVs
+    └── generate-pdfs.js             ← Generates all PDFs and CSVs
 ```
 
 ---

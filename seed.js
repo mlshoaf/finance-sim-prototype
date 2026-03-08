@@ -15,6 +15,25 @@ const { initDb } = require('./db');
 const SCENARIO_TITLE = 'CloudSync Pro Invoice Review';
 const UPLOADS_DIR = path.join(__dirname, 'uploads', 'scenario-1');
 
+const SCENARIO_CONFIG = JSON.stringify({
+  domain: 'Accounts Payable Review',
+  agent_persona: 'You are an accounts payable review assistant at Meridian Corp. The user is a finance analyst reviewing vendor invoices from CloudSync Pro, Inc. against a master contract (Contract #CSP-ENT-2026).\n\nYou can help analyze invoices, cross-reference against contract terms, spot mathematical errors, identify duplicate charges, and explain your reasoning.\n\nBe helpful but not proactive — respond to what the user asks. If you find a discrepancy, explain clearly what the expected value should be and what the invoice shows. If everything looks correct, say so.\n\nOnly reference information from documents the user has shared with you in this conversation. Do not fabricate data.',
+  primary_doc_type_label: 'Invoice Documents',
+  reference_doc_type_label: 'Reference Documents',
+  decision_options: [
+    { value: 'approve', label: '✅ Approve' },
+    { value: 'flag', label: '🚩 Flag' },
+  ],
+  error_categories: [
+    { value: 'tax_rate', label: 'Tax Rate Error' },
+    { value: 'duplicate', label: 'Duplicate Invoice' },
+    { value: 'quantity_mismatch', label: 'Quantity Mismatch' },
+    { value: 'rate_mismatch', label: 'Rate Mismatch' },
+    { value: 'math_error', label: 'Math Error' },
+    { value: 'other', label: 'Other' },
+  ],
+});
+
 // Invoice document metadata paired with rubric entries
 const INVOICE_DOCS = [
   { filename: 'INV-2026-0401.pdf', display_name: 'INV-2026-0401 — Enterprise License (15 seats)', correct_action: 'approve', error_description: null },
@@ -97,11 +116,12 @@ function seed() {
 
   // Insert scenario
   const scenarioResult = db.prepare(`
-    INSERT INTO scenarios (title, description, status)
-    VALUES (?, ?, 'published')
+    INSERT INTO scenarios (title, description, status, scenario_config)
+    VALUES (?, ?, 'published', ?)
   `).run(
     SCENARIO_TITLE,
-    'Review 10 invoices from CloudSync Pro, Inc. against the master contract CSP-ENT-2026. Identify errors in tax rates, quantities, unit prices, and duplicate charges. Use AI assistance to analyze discrepancies.'
+    'Review 10 invoices from CloudSync Pro, Inc. against the master contract CSP-ENT-2026. Identify errors in tax rates, quantities, unit prices, and duplicate charges. Use AI assistance to analyze discrepancies.',
+    SCENARIO_CONFIG
   );
 
   const scenarioId = scenarioResult.lastInsertRowid;

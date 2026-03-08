@@ -1,0 +1,29 @@
+{
+  "name": "Finance Sim Prototype",
+  "image": "mcr.microsoft.com/devcontainers/javascript-node:22",
+  "forwardPorts": [3000],
+  "portsAttributes": {
+    "3000": {
+      "label": "Finance Sim App",
+      "onAutoForward": "openPreview"
+    }
+  },
+  // postCreateCommand runs once when the container is first created
+  "postCreateCommand": "npm install",
+  // postStartCommand runs every time the codespace is resumed —
+  // installs any new packages, rebuilds native modules for the current Node.js
+  // version (prevents better-sqlite3 ABI mismatch errors), then starts the server.
+  "postStartCommand": "npm install --prefer-offline && npm rebuild && nohup npm start > /tmp/finance-sim.log 2>&1 &",
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "dbaeumer.vscode-eslint",
+        "esbenp.prettier-vscode",
+        "mtxr.sqliteviewer"
+      ]
+    }
+  },
+  "remoteEnv": {
+    "NODE_ENV": "development"
+  }
+}

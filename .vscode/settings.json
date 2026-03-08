@@ -1,0 +1,5 @@
+{
+  // Allow the "Start Finance Sim" task to run automatically when the
+  // codespace opens, without prompting for permission each time.
+  "task.allowAutomaticTasks": "on"
+}
