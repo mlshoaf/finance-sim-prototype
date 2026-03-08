@@ -4,6 +4,59 @@ This guide walks you through everything you need to use GitHub Codespaces with t
 
 ---
 
+## 🚨 Seeing the Old Version? Here's the Fix (2 minutes)
+
+> **If you opened a Codespace before and it still shows the old app after `npm start`, this section is for you.**
+
+The new features live on a different code branch (`copilot/find-alternatives-to-replit`). Your Codespace is probably still on the old `main` branch. Running `npm start` only runs the code that's already downloaded — it doesn't automatically fetch new commits from GitHub.
+
+**There are two ways to fix this:**
+
+### Option A — One-click fix (easiest)
+
+1. In VS Code, open the **Terminal** menu at the top → click **Run Task…**
+2. Select **⬇️ Pull Latest Code & Restart**
+3. Wait 30–60 seconds — you'll see output ending in `Finance Simulation server running on http://localhost:3000`
+4. Hard-refresh the app tab: **Ctrl+Shift+R** (Windows/Linux) or **Cmd+Shift+R** (Mac)
+5. ✅ You should now see the new home page with the updated description and the template selector when you click **+ New Scenario**
+
+### Option B — Manual commands (3 copy-paste commands)
+
+Open the Terminal (`` Ctrl+` `` or **View → Terminal**) and run these commands one at a time:
+
+```bash
+git fetch origin && git checkout copilot/find-alternatives-to-replit && git pull origin copilot/find-alternatives-to-replit
+```
+*(This switches to the new branch and downloads the latest code.)*
+
+```bash
+npm install
+```
+*(This installs any new packages.)*
+
+```bash
+pkill -f 'node server.js' 2>/dev/null; sleep 2 && npm start
+```
+*(This stops the old server and starts the new one.)*
+
+Then hard-refresh the app tab: **Ctrl+Shift+R** (Windows/Linux) or **Cmd+Shift+R** (Mac).
+
+### How to confirm it worked
+
+After the fix, go to the app's home page. The subtitle should read:
+> *"AI-powered training platform for analyst skill development"*
+
+(The old version said "for accounts payable teams". If you still see the old text, try the hard-refresh again.)
+
+When you click **Instructor → + New Scenario** you should see a modal with three choices:
+- 🤖 Start with AI guidance
+- 🧾 Billing Reconciliation
+- 🕵️ Timesheet Fraud Detection
+
+If the modal appears, you're fully up to date. 🎉
+
+---
+
 ## What is GitHub Codespaces?
 
 Think of it as **Replit but inside GitHub**. When you open a Codespace:
@@ -244,6 +297,7 @@ To manually stop it (e.g., to save hours): go to **[github.com/codespaces](https
 
 | Symptom | Fix |
 |---------|-----|
+| **Still seeing the old version** after `npm start` | Your Codespace is on the old `main` branch. See the **🚨 Seeing the Old Version?** section at the top of this file — use **Terminal → Run Task → ⬇️ Pull Latest Code & Restart** |
 | App tab shows "This site can't be reached" or "502 Bad Gateway" | The server isn't running — check `/tmp/finance-sim.log` for errors. If the log looks clean, run: `pkill -f 'node server.js' 2>/dev/null; npm start` in a New Terminal |
 | `ERR_DLOPEN_FAILED` / "compiled against a different Node.js version" | Native module ABI mismatch — run `npm rebuild` in the terminal, then `npm start` |
 | AI chat returns "ANTHROPIC_API_KEY" error | The secret wasn't found — double-check [Part 1](#part-1--one-time-setup-do-this-once-ever): the secret name must be exactly `ANTHROPIC_API_KEY` and the repo must be selected |
@@ -260,6 +314,7 @@ To manually stop it (e.g., to save hours): go to **[github.com/codespaces](https
 
 | Task | How |
 |------|-----|
+| **Get new features from this PR** | **Terminal → Run Task → ⬇️ Pull Latest Code & Restart** |
 | Open the app | Ports tab → 🌐 icon next to port 3000 |
 | Restart the server | **Terminal → Run Task → Restart Finance Sim** |
 | View server logs | `cat /tmp/finance-sim.log` in a terminal |

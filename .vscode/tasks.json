@@ -12,6 +12,18 @@
         "tab": "Finance Sim Server"
       },
       "problemMatcher": []
+    },
+    {
+      "label": "⬇️ Pull Latest Code & Restart",
+      "type": "shell",
+      "command": "git fetch origin && git checkout copilot/find-alternatives-to-replit && git pull origin copilot/find-alternatives-to-replit && npm install && pkill -f 'node server.js' 2>/dev/null; pkill -f 'node seed.js' 2>/dev/null; sleep 2 && npm start",
+      "isBackground": true,
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated",
+        "tab": "Finance Sim Server"
+      },
+      "problemMatcher": []
     }
   ]
 }
