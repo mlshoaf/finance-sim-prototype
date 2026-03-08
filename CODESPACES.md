@@ -77,26 +77,92 @@ The app opens in a new browser tab. You should see two cards: **Instructor** and
 
 ---
 
-## Part 3 — Using the App
+## Part 3 — Testing All Features
 
-The app works identically to how it worked on Replit. Quick recap:
+### Test A: Learner flow with the pre-seeded billing scenario
 
-### Learner flow
 1. Click **Learner** on the home page
-2. Click **▶️ Start** on the CloudSync Pro scenario
-3. The workspace opens with three panels: invoice list (left), document viewer (center), AI assistant (right)
-4. Click any invoice to open it in the center viewer
-5. Click **✅ Approve** or **🚩 Flag**, then **Save**
-6. Type questions in the AI chat (e.g. *"What is the contracted tax rate?"*)
-7. After reviewing all 10 invoices, click **✅ Submit Batch**
-8. The Results page shows your score and per-invoice breakdown
+2. Click **▶️ Start** on the "CloudSync Pro Invoice Review" scenario
+3. The workspace opens with three panels: document list (left), document viewer (center), AI assistant (right)
+4. Click any invoice (e.g. `INV-2026-0401`) to open it in the center viewer
+5. The decision bar shows **✅ Approve** and **🚩 Flag** — these come from the scenario's `scenario_config`
+6. Click **✅ Approve**, then **Save**
+7. Open `INV-2026-0403` — flag it with error category **Tax Rate Error**
+8. After reviewing all 10 invoices, click **✅ Submit All**
+9. The Results page shows your score and a per-document breakdown with the correct labels
 
 **Expected errors to find:** INV-0403 (tax rate), INV-0405 (duplicate), INV-0407 (quantity), INV-0410 (rate mismatch).
 
-### Instructor flow
+### Test B: AI chat in learner session
+
+1. Start a learner session on any published scenario
+2. Type a question in the AI chat panel: *"What is the contracted tax rate?"*
+3. Claude responds using the scenario's AI persona from `scenario_config.agent_persona`
+4. Drag an invoice from the left panel and drop it onto the chat drop zone to attach it
+5. Ask: *"Does this invoice have the correct tax rate?"*
+6. Claude reads the attached document and responds in the context of the scenario domain
+
+### Test C: Instructor — New Scenario with template selector
+
 1. Click **Instructor** on the home page
-2. Click **✏️ Edit** on the pre-seeded scenario
-3. Upload documents, edit the rubric, publish/unpublish the scenario
+2. Click **+ New Scenario**
+3. A modal appears with three options:
+   - **🤖 Start with AI guidance** — blank scenario, AI Design Assistant leads the conversation
+   - **🧾 Billing Reconciliation** — pre-filled billing config (Approve / Flag)
+   - **🕵️ Timesheet Fraud Detection** — pre-filled fraud config (Legitimate / Suspicious / Escalate)
+4. Click **🕵️ Timesheet Fraud Detection**
+5. The editor opens with the scenario pre-filled:
+   - Title: "Employee Timesheet Fraud Detection"
+   - Domain Settings shows: "Timesheet Fraud Detection"
+   - Primary doc label: "Timesheet Records"
+   - Decision options: ✅ Legitimate, 🚨 Suspicious, 🔍 Escalate for Review
+
+### Test D: AI Design Assistant (train-the-trainer)
+
+1. Open any scenario in the editor (try the blank "Start with AI guidance" option)
+2. The **🤖 AI Design Assistant** panel appears on the right side of the editor
+3. The panel shows a welcome message explaining that it will guide you step by step
+4. Type in the chat: *"I want to create a training exercise for analysts who review expense reports for policy violations."*
+5. The AI responds with an intake interview asking about domain, learner level, and case count
+6. Continue the conversation — the AI will:
+   - Propose a learning objective (Stage 1: INTAKE)
+   - Recommend document count and mix (Stage 2: CASE_DESIGN)
+   - Generate mock CSV data for you to upload (Stage 3: DATA_GENERATION via RUBRIC_REVIEW)
+   - Propose rubric entries (Stage 3: RUBRIC_REVIEW)
+   - Draft a learner-facing AI persona (Stage 4: PERSONA_DRAFT)
+   - Review the scenario for completeness (Stage 5: FINAL_REVIEW)
+
+> **Note:** The AI stage is computed automatically based on your scenario's completeness. As you add documents, save rubric entries, and fill in the domain settings, the AI advances to the next coaching stage on the next message.
+
+### Test E: Domain Settings in the editor
+
+1. Open any scenario in the editor
+2. The **⚙️ Domain Settings** card shows:
+   - Domain Name field
+   - Primary Document Type Label
+   - Reference Document Type Label
+   - Learner AI Assistant Persona (system prompt text area)
+3. Edit the "Primary Document Type Label" to something like "Expense Reports"
+4. Click **💾 Save Draft** — the config is saved
+5. Upload a test CSV file in the upload zone (now labelled with your custom label)
+6. The rubric table header updates to show your custom label
+7. The decision options in the rubric drop-down come from `scenario_config.decision_options`
+
+### Test F: Fraud scenario learner experience (end-to-end)
+
+1. First, create and publish a Timesheet Fraud scenario:
+   - Click **Instructor → + New Scenario → 🕵️ Timesheet Fraud Detection**
+   - Upload a CSV file as a "Timesheet Record" (any CSV will work for testing)
+   - In the Answer Key, the action options are now **✅ Legitimate**, **🚨 Suspicious**, **🔍 Escalate for Review**
+   - Set an action and click **💾 Save Answer Key**
+   - Click **🚀 Publish**
+2. Switch to **Learner** view
+3. Click **▶️ Start** on the fraud scenario
+4. Left panel header shows **"Timesheet Records"** instead of "Invoices"
+5. Decision bar shows **✅ Legitimate**, **🚨 Suspicious**, **🔍 Escalate for Review**
+6. Error categories show fraud-specific options (invalid project code, excessive hours, etc.)
+7. The AI chat uses the fraud-detection persona (Socratic, doesn't give away answers)
+8. Submit and view Results — the breakdown table header shows "Timesheet Records Breakdown"
 
 ---
 
@@ -186,6 +252,7 @@ To manually stop it (e.g., to save hours): go to **[github.com/codespaces](https
 | `npm install` fails | Run `npm install` manually in the terminal and check the error output |
 | Changes not showing in the app | Hard-refresh: **Ctrl+Shift+R** (Windows/Linux) or **Cmd+Shift+R** (Mac). If that doesn't help, restart the server via **Terminal → Run Task → Restart Finance Sim** |
 | Codespace won't start | Go to [github.com/codespaces](https://github.com/codespaces), delete the codespace, and create a new one — your committed code is safe in GitHub |
+| The template modal doesn't show decision options from config | Hard-refresh after publishing — the scenario config is loaded fresh when the learner session starts |
 
 ---
 

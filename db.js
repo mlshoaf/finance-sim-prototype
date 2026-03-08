@@ -22,6 +22,7 @@ function initDb() {
       title TEXT NOT NULL,
       description TEXT,
       status TEXT DEFAULT 'draft',
+      scenario_config TEXT DEFAULT '{}',
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP
     );
 
@@ -69,7 +70,18 @@ function initDb() {
       attached_doc_ids TEXT,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP
     );
+
+    CREATE TABLE IF NOT EXISTS instructor_chat_messages (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      scenario_id INTEGER REFERENCES scenarios(id),
+      role TEXT NOT NULL,
+      content TEXT NOT NULL,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
   `);
+
+  // Migrations for existing databases
+  try { db.exec("ALTER TABLE scenarios ADD COLUMN scenario_config TEXT DEFAULT '{}'"); } catch (_) {}
 
   return db;
 }

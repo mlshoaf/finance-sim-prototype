@@ -13,17 +13,17 @@
   <!-- ─── ROLE SELECTION ──────────────────────────────────────────────────── -->
   <div x-show="view === 'home'" class="role-page">
     <h1>📊 Finance Sim</h1>
-    <p>AI-powered training platform for accounts payable teams</p>
+    <p>AI-powered training platform for analyst skill development</p>
     <div class="role-cards">
       <div class="role-card" @click="navigate('instructor')">
         <div class="role-icon">🏫</div>
         <h2>Instructor</h2>
-        <p>Build scenarios, upload invoices, set answer keys</p>
+        <p>Build scenarios, upload documents, set answer keys, use AI to design modules</p>
       </div>
       <div class="role-card" @click="navigate('learner')">
         <div class="role-icon">📋</div>
         <h2>Learner</h2>
-        <p>Review invoices using AI assistance and submit decisions</p>
+        <p>Review documents using AI assistance and submit decisions</p>
       </div>
     </div>
   </div>
@@ -40,7 +40,7 @@
       <div class="container" style="padding-top:24px">
         <div class="dashboard-header">
           <h2>🏫 Instructor Dashboard</h2>
-          <button class="btn btn-primary" @click="createScenario()">+ New Scenario</button>
+          <button class="btn btn-primary" @click="openNewScenarioModal()">+ New Scenario</button>
         </div>
         <div x-show="instructorScenarios.length === 0" class="empty-state">
           <div class="icon">📁</div>
@@ -66,124 +66,235 @@
           </template>
         </div>
       </div>
+
+      <!-- Template selector modal -->
+      <template x-if="showTemplateModal">
+        <div class="modal-overlay" @click.self="showTemplateModal = false">
+          <div class="modal-card">
+            <h3 style="margin-bottom:8px">📋 New Scenario</h3>
+            <p style="font-size:13px;color:#64748b;margin-bottom:20px">Choose how to get started:</p>
+            <div style="display:flex;flex-direction:column;gap:10px">
+              <button class="template-btn" @click="createScenario(null)">
+                <span style="font-size:20px">🤖</span>
+                <div>
+                  <div style="font-weight:700">Start with AI guidance</div>
+                  <div style="font-size:12px;color:#64748b">The AI Design Assistant will guide you through building your module step by step</div>
+                </div>
+              </button>
+              <button class="template-btn" @click="createScenario('billing')">
+                <span style="font-size:20px">🧾</span>
+                <div>
+                  <div style="font-weight:700">Billing Reconciliation</div>
+                  <div style="font-size:12px;color:#64748b">Invoice review — Approve or Flag with error categories</div>
+                </div>
+              </button>
+              <button class="template-btn" @click="createScenario('fraud')">
+                <span style="font-size:20px">🕵️</span>
+                <div>
+                  <div style="font-weight:700">Timesheet Fraud Detection</div>
+                  <div style="font-size:12px;color:#64748b">Timesheet review — Legitimate / Suspicious / Escalate</div>
+                </div>
+              </button>
+            </div>
+            <button class="btn btn-outline" style="margin-top:16px;width:100%" @click="showTemplateModal = false">Cancel</button>
+          </div>
+        </div>
+      </template>
     </div>
   </template>
 
   <!-- ─── SCENARIO EDITOR ───────────────────────────────────────────────── -->
   <template x-if="view === 'editor'">
-    <div class="page">
+    <div class="page" style="display:flex;flex-direction:column;height:100vh">
       <nav class="navbar">
         <span class="navbar-brand"><span class="icon">📊</span> Finance Sim</span>
         <div class="navbar-links">
           <button @click="navigate('instructor')">← Dashboard</button>
         </div>
       </nav>
-      <div class="container" style="padding-top:24px">
-        <h2 style="margin-bottom:20px">✏️ Edit Scenario</h2>
-        <div x-show="editorError" class="error-banner" x-text="editorError"></div>
-        <div class="card" style="margin-bottom:16px">
-          <div class="form-group">
-            <label>Title</label>
-            <input class="form-control" type="text" x-model="editData.title" placeholder="Scenario title" />
-          </div>
-          <div class="form-group">
-            <label>Description</label>
-            <textarea class="form-control" x-model="editData.description" placeholder="Describe the scenario for learners..."></textarea>
-          </div>
-          <div style="display:flex;gap:10px">
-            <button class="btn btn-outline" @click="saveScenario('draft')">💾 Save Draft</button>
-            <button class="btn btn-success" @click="saveScenario('published')">🚀 Publish</button>
-          </div>
-        </div>
+      <div class="editor-page">
 
-        <!-- Document Upload -->
-        <div class="editor-layout">
-          <div class="card">
-            <h3 style="font-size:15px;font-weight:700;margin-bottom:12px">📄 Invoice Documents</h3>
-            <div class="upload-zone"
-              @click="triggerUpload('invoice')"
-              @dragover.prevent="$el.classList.add('drag-over')"
-              @dragleave="$el.classList.remove('drag-over')"
-              @drop.prevent="handleFileDrop($event, 'invoice')">
-              <p>Drop invoice files here or click to upload</p>
-              <p style="font-size:11px;margin-top:4px">PDF or CSV</p>
+        <!-- ── Left/Main: Scenario form ────────────────────────────────── -->
+        <div class="editor-main">
+          <h2 style="margin-bottom:16px">✏️ Edit Scenario</h2>
+          <div x-show="editorError" class="error-banner" x-text="editorError"></div>
+
+          <!-- Scenario metadata -->
+          <div class="card" style="margin-bottom:16px">
+            <div class="form-group">
+              <label>Title</label>
+              <input class="form-control" type="text" x-model="editData.title" placeholder="Scenario title" />
             </div>
-            <input type="file" id="invoiceFileInput" multiple accept=".pdf,.csv" style="display:none"
-              @change="handleFileInput($event, 'invoice')" />
-            <div style="margin-top:10px">
-              <template x-for="doc in editDocs.filter(d => d.doc_type === 'invoice')" :key="doc.id">
-                <div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid #f1f5f9">
-                  <span style="font-size:16px">📄</span>
-                  <span style="flex:1;font-size:13px" x-text="doc.display_name || doc.filename"></span>
-                  <button class="btn btn-danger btn-sm" @click="deleteDoc(doc.id)">✕</button>
-                </div>
-              </template>
+            <div class="form-group">
+              <label>Description</label>
+              <textarea class="form-control" x-model="editData.description" placeholder="Describe the scenario for learners..."></textarea>
+            </div>
+            <div style="display:flex;gap:10px">
+              <button class="btn btn-outline" @click="saveScenario('draft')">💾 Save Draft</button>
+              <button class="btn btn-success" @click="saveScenario('published')">🚀 Publish</button>
             </div>
           </div>
 
-          <div class="card">
-            <h3 style="font-size:15px;font-weight:700;margin-bottom:12px">📎 Reference Documents</h3>
-            <div class="upload-zone"
-              @click="triggerUpload('reference')"
-              @dragover.prevent="$el.classList.add('drag-over')"
-              @dragleave="$el.classList.remove('drag-over')"
-              @drop.prevent="handleFileDrop($event, 'reference')">
-              <p>Drop reference files here or click to upload</p>
-              <p style="font-size:11px;margin-top:4px">Contract, rate card, etc.</p>
+          <!-- Domain settings (from scenario_config) -->
+          <div class="card" style="margin-bottom:16px">
+            <h3 style="font-size:15px;font-weight:700;margin-bottom:12px">⚙️ Domain Settings</h3>
+            <div class="form-group">
+              <label>Domain Name</label>
+              <input class="form-control" type="text" :value="editConfig.domain || ''"
+                @input="editConfig = { ...editConfig, domain: $event.target.value }"
+                placeholder="e.g. Accounts Payable Review, Timesheet Fraud Detection" />
             </div>
-            <input type="file" id="referenceFileInput" multiple accept=".pdf,.csv" style="display:none"
-              @change="handleFileInput($event, 'reference')" />
-            <div style="margin-top:10px">
-              <template x-for="doc in editDocs.filter(d => d.doc_type === 'reference')" :key="doc.id">
-                <div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid #f1f5f9">
-                  <span style="font-size:16px">📎</span>
-                  <span style="flex:1;font-size:13px" x-text="doc.display_name || doc.filename"></span>
-                  <button class="btn btn-danger btn-sm" @click="deleteDoc(doc.id)">✕</button>
-                </div>
-              </template>
+            <div class="form-group">
+              <label>Primary Document Type Label</label>
+              <input class="form-control" type="text" :value="editConfig.primary_doc_type_label || ''"
+                @input="editConfig = { ...editConfig, primary_doc_type_label: $event.target.value }"
+                placeholder="e.g. Invoice Documents, Timesheet Records, Expense Reports" />
+            </div>
+            <div class="form-group">
+              <label>Reference Document Type Label</label>
+              <input class="form-control" type="text" :value="editConfig.reference_doc_type_label || ''"
+                @input="editConfig = { ...editConfig, reference_doc_type_label: $event.target.value }"
+                placeholder="e.g. Reference Documents, Policy & Rate Documents" />
+            </div>
+            <div class="form-group">
+              <label>Learner AI Assistant Persona <span style="font-size:11px;color:#94a3b8">(system prompt)</span></label>
+              <textarea class="form-control" style="min-height:80px;font-size:12px;font-family:monospace"
+                :value="editConfig.agent_persona || ''"
+                @input="editConfig = { ...editConfig, agent_persona: $event.target.value }"
+                placeholder="Describe the AI assistant's role and behavior for learners using this scenario. The AI Design Assistant can help you draft this."></textarea>
+            </div>
+            <div style="font-size:11px;color:#94a3b8">💡 Ask the AI Design Assistant to help configure these settings for your domain.</div>
+          </div>
+
+          <!-- Document Upload -->
+          <div class="editor-layout">
+            <div class="card">
+              <h3 style="font-size:15px;font-weight:700;margin-bottom:12px"
+                x-text="'📄 ' + (resolvedConfig.primary_doc_type_label || 'Primary Documents')"></h3>
+              <div class="upload-zone"
+                @click="triggerUpload('primary')"
+                @dragover.prevent="$el.classList.add('drag-over')"
+                @dragleave="$el.classList.remove('drag-over')"
+                @drop.prevent="handleFileDrop($event, 'primary')">
+                <p>Drop files here or click to upload</p>
+                <p style="font-size:11px;margin-top:4px">PDF or CSV</p>
+              </div>
+              <input type="file" id="primaryFileInput" multiple accept=".pdf,.csv" style="display:none"
+                @change="handleFileInput($event, 'primary')" />
+              <div style="margin-top:10px">
+                <template x-for="doc in editDocs.filter(d => d.doc_type === 'primary' || d.doc_type === 'invoice')" :key="doc.id">
+                  <div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid #f1f5f9">
+                    <span style="font-size:16px">📄</span>
+                    <span style="flex:1;font-size:13px" x-text="doc.display_name || doc.filename"></span>
+                    <button class="btn btn-danger btn-sm" @click="deleteDoc(doc.id)">✕</button>
+                  </div>
+                </template>
+              </div>
+            </div>
+
+            <div class="card">
+              <h3 style="font-size:15px;font-weight:700;margin-bottom:12px"
+                x-text="'📎 ' + (resolvedConfig.reference_doc_type_label || 'Reference Documents')"></h3>
+              <div class="upload-zone"
+                @click="triggerUpload('reference')"
+                @dragover.prevent="$el.classList.add('drag-over')"
+                @dragleave="$el.classList.remove('drag-over')"
+                @drop.prevent="handleFileDrop($event, 'reference')">
+                <p>Drop reference files here or click to upload</p>
+                <p style="font-size:11px;margin-top:4px">Contract, rate card, policy, etc.</p>
+              </div>
+              <input type="file" id="referenceFileInput" multiple accept=".pdf,.csv" style="display:none"
+                @change="handleFileInput($event, 'reference')" />
+              <div style="margin-top:10px">
+                <template x-for="doc in editDocs.filter(d => d.doc_type === 'reference')" :key="doc.id">
+                  <div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid #f1f5f9">
+                    <span style="font-size:16px">📎</span>
+                    <span style="flex:1;font-size:13px" x-text="doc.display_name || doc.filename"></span>
+                    <button class="btn btn-danger btn-sm" @click="deleteDoc(doc.id)">✕</button>
+                  </div>
+                </template>
+              </div>
             </div>
           </div>
-        </div>
 
-        <!-- Answer Key / Rubric -->
-        <div class="card" style="margin-top:16px">
-          <h3 style="font-size:15px;font-weight:700;margin-bottom:12px">🔑 Answer Key (Rubric)</h3>
-          <p style="font-size:12px;color:#64748b;margin-bottom:12px">Set the correct action for each invoice document.</p>
-          <table class="rubric-table" x-show="editDocs.filter(d => d.doc_type === 'invoice').length > 0">
-            <thead>
-              <tr>
-                <th>Invoice</th>
-                <th>Correct Action</th>
-                <th>Error Description</th>
-              </tr>
-            </thead>
-            <tbody>
-              <template x-for="doc in editDocs.filter(d => d.doc_type === 'invoice')" :key="doc.id">
+          <!-- Answer Key / Rubric -->
+          <div class="card" style="margin-top:16px">
+            <h3 style="font-size:15px;font-weight:700;margin-bottom:12px">🔑 Answer Key (Rubric)</h3>
+            <p style="font-size:12px;color:#64748b;margin-bottom:12px">Set the correct action for each primary document.</p>
+            <table class="rubric-table" x-show="editDocs.filter(d => d.doc_type === 'primary' || d.doc_type === 'invoice').length > 0">
+              <thead>
                 <tr>
-                  <td x-text="doc.display_name || doc.filename" style="font-size:12px"></td>
-                  <td>
-                    <select class="rubric-action-select" x-model="rubricEntries[doc.id].action">
-                      <option value="">-- select --</option>
-                      <option value="approve">✅ Approve</option>
-                      <option value="flag">🚩 Flag</option>
-                    </select>
-                  </td>
-                  <td>
-                    <input type="text" class="form-control" style="font-size:12px;padding:4px 8px"
-                      x-model="rubricEntries[doc.id].error_description"
-                      placeholder="Describe the error (if flagged)" />
-                  </td>
+                  <th x-text="resolvedConfig.primary_doc_type_label || 'Document'"></th>
+                  <th>Correct Action</th>
+                  <th>Error Description</th>
                 </tr>
-              </template>
-            </tbody>
-          </table>
-          <div x-show="editDocs.filter(d => d.doc_type === 'invoice').length === 0" class="empty-state">
-            <p>Upload invoice documents to configure the answer key.</p>
-          </div>
-          <div style="margin-top:12px">
-            <button class="btn btn-primary" @click="saveRubric()">💾 Save Answer Key</button>
+              </thead>
+              <tbody>
+                <template x-for="doc in editDocs.filter(d => d.doc_type === 'primary' || d.doc_type === 'invoice')" :key="doc.id">
+                  <tr>
+                    <td x-text="doc.display_name || doc.filename" style="font-size:12px"></td>
+                    <td>
+                      <select class="rubric-action-select" x-model="rubricEntries[doc.id].action">
+                        <option value="">-- select --</option>
+                        <template x-for="opt in resolvedConfig.decision_options" :key="opt.value">
+                          <option :value="opt.value" x-text="opt.label"></option>
+                        </template>
+                      </select>
+                    </td>
+                    <td>
+                      <input type="text" class="form-control" style="font-size:12px;padding:4px 8px"
+                        x-model="rubricEntries[doc.id].error_description"
+                        placeholder="Describe the error (if applicable)" />
+                    </td>
+                  </tr>
+                </template>
+              </tbody>
+            </table>
+            <div x-show="editDocs.filter(d => d.doc_type === 'primary' || d.doc_type === 'invoice').length === 0" class="empty-state">
+              <p>Upload primary documents to configure the answer key.</p>
+            </div>
+            <div style="margin-top:12px">
+              <button class="btn btn-primary" @click="saveRubric()">💾 Save Answer Key</button>
+            </div>
           </div>
         </div>
+
+        <!-- ── Right: AI Design Assistant ───────────────────────────────── -->
+        <div class="editor-ai-panel">
+          <div class="chat-header">
+            <h3>🤖 AI Design Assistant</h3>
+            <p style="font-size:11px;color:#94a3b8;margin-top:2px">Train-the-trainer coaching — guides you through building this module step by step</p>
+          </div>
+
+          <!-- Chat messages -->
+          <div class="chat-messages" x-ref="instructorChatMessages">
+            <template x-if="instructorChatMessages.length === 0">
+              <div style="color:#94a3b8;font-size:12px;text-align:center;padding:16px;line-height:1.6">
+                👋 The AI Design Assistant is ready to help.<br>
+                Send a message to start — it will guide you through defining your domain, generating mock data, building the rubric, and writing the learner AI persona.
+              </div>
+            </template>
+            <template x-for="msg in instructorChatMessages" :key="msg.id">
+              <div class="chat-msg" :class="msg.role" x-text="msg.content"></div>
+            </template>
+            <div x-show="instructorAiTyping" class="typing-indicator">
+              <div class="typing-dot"></div>
+              <div class="typing-dot"></div>
+              <div class="typing-dot"></div>
+            </div>
+          </div>
+
+          <!-- Input area -->
+          <div class="chat-input-area">
+            <textarea x-model="instructorChatInput"
+              placeholder="Ask the AI to help design your scenario..."
+              @keydown.enter.exact.prevent="sendInstructorChat()"
+              rows="2"></textarea>
+            <button class="chat-send-btn" :disabled="!instructorChatInput.trim() || instructorAiTyping"
+              @click="sendInstructorChat()">➤</button>
+          </div>
+        </div>
+
       </div>
     </div>
   </template>
@@ -242,13 +353,13 @@
             <div class="progress-bar-wrap">
               <div class="progress-bar" :style="`width: ${progressPct}%`"></div>
             </div>
-            <div class="progress-label" x-text="`${decisionsCount} / ${invoiceDocCount} reviewed`"></div>
+            <div class="progress-label" x-text="`${decisionsCount} / ${primaryDocCount} reviewed`"></div>
           </div>
 
           <div class="panel-left-scroll">
-            <!-- Invoice list -->
-            <div class="section-toggle">📄 Invoices</div>
-            <template x-for="doc in invoiceDocs" :key="doc.id">
+            <!-- Primary document list -->
+            <div class="section-toggle">📄 <span x-text="primaryDocLabel"></span></div>
+            <template x-for="doc in primaryDocs" :key="doc.id">
               <div class="invoice-item"
                 :class="{ active: activeDocId === doc.id }"
                 draggable="true"
@@ -285,10 +396,10 @@
             <button class="btn btn-success" style="width:100%"
               :disabled="!allDecided"
               @click="submitSession()">
-              ✅ Submit Batch
+              ✅ Submit All
             </button>
             <p x-show="!allDecided" style="font-size:11px;color:#94a3b8;text-align:center;margin-top:4px">
-              Review all invoices to submit
+              Review all documents to submit
             </p>
           </div>
         </div>
@@ -337,33 +448,33 @@
             <template x-if="!activeDoc">
               <div class="doc-empty">
                 <div class="icon">📂</div>
-                <p>Select an invoice from the left panel</p>
+                <p x-text="'Select a document from the left panel'"></p>
               </div>
             </template>
           </div>
 
-          <!-- Decision bar (only for invoice docs with rubric) -->
-          <template x-if="activeDoc && activeDocIsInvoice">
+          <!-- Decision bar (only for primary docs) -->
+          <template x-if="activeDoc && activeDocIsPrimary">
             <div class="decision-bar">
               <div style="font-size:11px;font-weight:700;color:#475569;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:6px">
                 Your Decision
               </div>
               <div class="decision-controls">
                 <div class="action-toggle">
-                  <button class="action-btn approve" :class="{ active: currentDecision.action === 'approve' }"
-                    @click="setAction('approve')">✅ Approve</button>
-                  <button class="action-btn flag" :class="{ active: currentDecision.action === 'flag' }"
-                    @click="setAction('flag')">🚩 Flag</button>
+                  <template x-for="(opt, idx) in sessionDecisionOptions" :key="opt.value">
+                    <button class="action-btn"
+                      :class="{ active: currentDecision.action === opt.value, approve: idx === 0, flag: idx > 0 }"
+                      @click="setAction(opt.value)"
+                      x-text="opt.label"></button>
+                  </template>
                 </div>
                 <div class="decision-fields" x-show="currentDecision.action">
-                  <select x-show="currentDecision.action === 'flag'" x-model="currentDecision.error_category">
+                  <select x-model="currentDecision.error_category"
+                    x-show="sessionErrorCategories.length > 0">
                     <option value="">Error category...</option>
-                    <option value="tax_rate">Tax Rate Error</option>
-                    <option value="duplicate">Duplicate Invoice</option>
-                    <option value="quantity_mismatch">Quantity Mismatch</option>
-                    <option value="rate_mismatch">Rate Mismatch</option>
-                    <option value="math_error">Math Error</option>
-                    <option value="other">Other</option>
+                    <template x-for="cat in sessionErrorCategories" :key="cat.value">
+                      <option :value="cat.value" x-text="cat.label"></option>
+                    </template>
                   </select>
                   <textarea x-model="currentDecision.notes" placeholder="Notes (optional)..." rows="2"></textarea>
                   <button class="btn btn-primary btn-sm" @click="saveDecision()">Save</button>
@@ -457,11 +568,11 @@
           </div>
         </div>
 
-        <h3 style="margin-bottom:12px">Invoice-by-Invoice Breakdown</h3>
+        <h3 style="margin-bottom:12px" x-text="resultsDocLabel + ' Breakdown'"></h3>
         <table class="results-table">
           <thead>
             <tr>
-              <th>Invoice</th>
+              <th x-text="resultsDocLabel"></th>
               <th>Your Decision</th>
               <th>Correct</th>
               <th>Result</th>
@@ -472,8 +583,8 @@
             <template x-for="item in results.breakdown" :key="item.document_id">
               <tr>
                 <td x-text="item.document_name"></td>
-                <td x-text="item.learner_action ? (item.learner_action === 'approve' ? '✅ Approve' : '🚩 Flag') : '—'"></td>
-                <td x-text="item.correct_action === 'approve' ? '✅ Approve' : '🚩 Flag'"></td>
+                <td x-text="decisionLabel(item.learner_action)"></td>
+                <td x-text="decisionLabel(item.correct_action)"></td>
                 <td>
                   <span :class="item.is_correct ? 'result-correct' : 'result-incorrect'"
                     x-text="item.is_correct ? '✓ Correct' : '✗ Wrong'"></span>

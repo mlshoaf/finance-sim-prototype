@@ -95,13 +95,19 @@ function app() {
 
     // ── Instructor Dashboard ──────────────────────────────────────────────────
     instructorScenarios: [],
+    showTemplateModal: false,
 
     async loadInstructorScenarios() {
       this.instructorScenarios = await apiGet('/api/scenarios');
     },
 
-    async createScenario() {
-      const sc = await apiPost('/api/scenarios', { title: 'New Scenario', description: '' });
+    openNewScenarioModal() {
+      this.showTemplateModal = true;
+    },
+
+    async createScenario(template) {
+      this.showTemplateModal = false;
+      const sc = await apiPost('/api/scenarios', template ? { template } : { title: 'New Scenario', description: '' });
       window.location.hash = `#/instructor/edit/${sc.id}`;
     },
 
@@ -119,15 +125,46 @@ function app() {
     // ── Scenario Editor ───────────────────────────────────────────────────────
     editScenarioId: null,
     editData: { title: '', description: '' },
+    editConfig: {},     // parsed scenario_config object
     editDocs: [],
     rubricEntries: {}, // { [docId]: { action: '', error_description: '' } }
     editorError: '',
+
+    // Instructor AI chat state
+    instructorChatMessages: [],
+    instructorChatInput: '',
+    instructorAiTyping: false,
+    showInstructorChat: true,
+
+    // Helper: resolved config with defaults
+    get resolvedConfig() {
+      const cfg = this.editConfig || {};
+      return {
+        primary_doc_type_label: cfg.primary_doc_type_label || 'Primary Documents',
+        reference_doc_type_label: cfg.reference_doc_type_label || 'Reference Documents',
+        decision_options: cfg.decision_options || [
+          { value: 'approve', label: '✅ Approve' },
+          { value: 'flag', label: '🚩 Flag' },
+        ],
+        error_categories: cfg.error_categories || [
+          { value: 'tax_rate', label: 'Tax Rate Error' },
+          { value: 'duplicate', label: 'Duplicate Invoice' },
+          { value: 'quantity_mismatch', label: 'Quantity Mismatch' },
+          { value: 'rate_mismatch', label: 'Rate Mismatch' },
+          { value: 'math_error', label: 'Math Error' },
+          { value: 'other', label: 'Other' },
+        ],
+        agent_persona: cfg.agent_persona || '',
+        domain: cfg.domain || '',
+      };
+    },
 
     async loadEditor(id) {
       this.editScenarioId = id;
       this.editorError = '';
       const sc = await apiGet(`/api/scenarios/${id}`);
       this.editData = { title: sc.title, description: sc.description || '' };
+      try { this.editConfig = JSON.parse(sc.scenario_config || '{}'); } catch (_) { this.editConfig = {}; }
       this.editDocs = sc.documents || [];
       // Build rubric map
       this.rubricEntries = {};
@@ -138,15 +175,20 @@ function app() {
           error_description: rubricEntry ? (rubricEntry.error_description || '') : '',
         };
       }
+      // Load instructor chat history
+      this.instructorChatMessages = await apiGet(`/api/scenarios/${id}/instructor-chat`);
     },
 
     async saveScenario(status) {
       try {
         this.editorError = '';
+        // Merge agent_persona back into config if it was edited via the UI
+        const configToSave = { ...this.editConfig };
         await apiPut(`/api/scenarios/${this.editScenarioId}`, {
           title: this.editData.title,
           description: this.editData.description,
           status,
+          scenario_config: JSON.stringify(configToSave),
         });
       } catch (e) {
         this.editorError = e.message;
@@ -170,7 +212,8 @@ function app() {
     },
 
     triggerUpload(type) {
-      const input = document.getElementById(`${type}FileInput`);
+      const inputId = type === 'primary' ? 'primaryFileInput' : `${type}FileInput`;
+      const input = document.getElementById(inputId);
       if (input) input.click();
     },
 
@@ -213,6 +256,34 @@ function app() {
       delete this.rubricEntries[docId];
     },
 
+    // ── Instructor AI Chat ────────────────────────────────────────────────────
+    async sendInstructorChat() {
+      const message = this.instructorChatInput.trim();
+      if (!message || this.instructorAiTyping) return;
+
+      this.instructorChatInput = '';
+      this.instructorAiTyping = true;
+
+      // Optimistically show user message
+      this.instructorChatMessages.push({ id: Date.now(), role: 'user', content: message });
+      this.$nextTick(() => this.scrollInstructorChat());
+
+      try {
+        await apiPost(`/api/scenarios/${this.editScenarioId}/instructor-chat`, { message });
+        this.instructorChatMessages = await apiGet(`/api/scenarios/${this.editScenarioId}/instructor-chat`);
+      } catch (e) {
+        this.instructorChatMessages.push({ id: Date.now() + 1, role: 'error', content: `Error: ${e.message}` });
+      }
+
+      this.instructorAiTyping = false;
+      this.$nextTick(() => this.scrollInstructorChat());
+    },
+
+    scrollInstructorChat() {
+      const el = this.$refs.instructorChatMessages;
+      if (el) el.scrollTop = el.scrollHeight;
+    },
+
     // ── Learner Dashboard ─────────────────────────────────────────────────────
     learnerScenarios: [],
 
@@ -228,7 +299,8 @@ function app() {
     // ── Session Workspace ─────────────────────────────────────────────────────
     sessionId: null,
     sessionScenarioTitle: '',
-    invoiceDocs: [],
+    scenarioConfig: {},  // parsed scenario_config for the active session's scenario
+    primaryDocs: [],
     referenceDocs: [],
     decisionsMap: {},    // { [docId]: decision }
     openTabs: [],
@@ -278,11 +350,13 @@ function app() {
 
       this.sessionStartedAt = new Date(session.started_at + 'Z');
 
-      // Load scenario title
+      // Load scenario title and config
       const sc = await apiGet(`/api/scenarios/${session.scenario_id}`);
       this.sessionScenarioTitle = sc.title;
+      try { this.scenarioConfig = JSON.parse(sc.scenario_config || '{}'); } catch (_) { this.scenarioConfig = {}; }
 
-      this.invoiceDocs = docData.invoices || [];
+      // Server returns 'primary' for both 'primary' and 'invoice' doc_types
+      this.primaryDocs = docData.primary || [];
       this.referenceDocs = docData.reference || [];
 
       // Rebuild decisions map
@@ -312,36 +386,67 @@ function app() {
       return `${m}:${s}`;
     },
 
-    get invoiceDocCount() {
-      // Only count docs that have rubric (invoice PDFs, not the batch CSV)
-      return this.invoiceDocs.filter(d => d.filename.endsWith('.pdf')).length;
+    // Session config helpers — resolved with defaults when config is empty
+    get sessionDecisionOptions() {
+      const opts = this.scenarioConfig && this.scenarioConfig.decision_options;
+      return opts && opts.length ? opts : [
+        { value: 'approve', label: '✅ Approve' },
+        { value: 'flag', label: '🚩 Flag' },
+      ];
+    },
+
+    get sessionErrorCategories() {
+      const cats = this.scenarioConfig && this.scenarioConfig.error_categories;
+      return cats && cats.length ? cats : [
+        { value: 'tax_rate', label: 'Tax Rate Error' },
+        { value: 'duplicate', label: 'Duplicate Invoice' },
+        { value: 'quantity_mismatch', label: 'Quantity Mismatch' },
+        { value: 'rate_mismatch', label: 'Rate Mismatch' },
+        { value: 'math_error', label: 'Math Error' },
+        { value: 'other', label: 'Other' },
+      ];
+    },
+
+    get primaryDocLabel() {
+      return (this.scenarioConfig && this.scenarioConfig.primary_doc_type_label) || 'Documents';
+    },
+
+    get primaryDocCount() {
+      return this.primaryDocs.length;
     },
 
     get decisionsCount() {
       return Object.keys(this.decisionsMap).filter(docId =>
-        this.invoiceDocs.some(d => d.id === Number(docId) && d.filename.endsWith('.pdf'))
+        this.primaryDocs.some(d => d.id === Number(docId))
       ).length;
     },
 
     get progressPct() {
-      return this.invoiceDocCount > 0 ? (this.decisionsCount / this.invoiceDocCount) * 100 : 0;
+      return this.primaryDocCount > 0 ? (this.decisionsCount / this.primaryDocCount) * 100 : 0;
     },
 
     get allDecided() {
-      return this.invoiceDocCount > 0 && this.decisionsCount >= this.invoiceDocCount;
+      return this.primaryDocCount > 0 && this.decisionsCount >= this.primaryDocCount;
     },
 
     get activeDoc() {
       return this.openTabs.find(t => t.id === this.activeDocId) || null;
     },
 
-    get activeDocIsInvoice() {
-      return this.activeDoc && this.invoiceDocs.some(d => d.id === this.activeDoc.id && d.filename.endsWith('.pdf'));
+    get activeDocIsPrimary() {
+      return this.activeDoc && this.primaryDocs.some(d => d.id === this.activeDoc.id);
     },
 
     decisionIcon(docId) {
       const d = this.decisionsMap[docId];
       if (!d) return '⬜';
+      // Find the matching option label, fall back to a generic icon
+      const opt = this.sessionDecisionOptions.find(o => o.value === d.action);
+      if (opt) {
+        // Extract just the emoji from the label (first character sequence before a space)
+        const match = opt.label.match(/^(\S+)/);
+        return match ? match[1] : '✔';
+      }
       return d.action === 'approve' ? '✅' : '🚩';
     },
 
@@ -479,6 +584,7 @@ function app() {
 
     // ── Results ───────────────────────────────────────────────────────────────
     results: { accuracy: 0, score_correct: 0, score_total: 0, breakdown: [], elapsed_seconds: null },
+    resultsConfig: {},
     showChatLog: false,
     chatLogMessages: [],
 
@@ -486,6 +592,30 @@ function app() {
       this.sessionId = sessionId;
       this.showChatLog = false;
       this.results = await apiGet(`/api/sessions/${sessionId}/score`);
+      // Load config for dynamic labels in results page
+      try {
+        const session = await apiGet(`/api/sessions/${sessionId}`);
+        const sc = await apiGet(`/api/scenarios/${session.scenario_id}`);
+        this.resultsConfig = JSON.parse(sc.scenario_config || '{}');
+      } catch (_) { this.resultsConfig = {}; }
+    },
+
+    get resultsDocLabel() {
+      return (this.resultsConfig && this.resultsConfig.primary_doc_type_label) || 'Document';
+    },
+
+    get resultsDecisionOptions() {
+      const opts = this.resultsConfig && this.resultsConfig.decision_options;
+      return opts && opts.length ? opts : [
+        { value: 'approve', label: '✅ Approve' },
+        { value: 'flag', label: '🚩 Flag' },
+      ];
+    },
+
+    decisionLabel(action) {
+      if (!action) return '—';
+      const opt = this.resultsDecisionOptions.find(o => o.value === action);
+      return opt ? opt.label : action;
     },
 
     async viewChatLog() {
