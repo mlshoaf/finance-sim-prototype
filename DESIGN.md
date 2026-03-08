@@ -350,35 +350,226 @@ If the owner wants to proceed with coding, here is a suggested phased approach:
 
 ---
 
-## 9. Example: What the Fraud Detection Workflow Looks Like End-to-End
+## 9. "Train the Trainer" — The Missing Design Concern
 
-To make the design concrete, here is a walkthrough of the fraud detection example from the problem statement:
+> **This section responds directly to the clarifying question:**
+> *"Does the end-to-end walkthrough of the fraud-detection scenario provide a 'train the trainer' concept to show the instructor persona how to build a module?"*
 
-**Instructor workflow (with proposed changes):**
+**Short answer: No — not in its original form.** The walkthrough in Section 10 (below) is a *product designer's description* of system mechanics. It assumes the instructor already knows what they want: they know to ask for a Workday CSV, they know what fraud indicators to build in, they know how to structure a rubric. A real instructor encountering this platform for the first time would not know any of that.
 
-1. Instructor clicks **+ New Scenario**, selects template **"Timesheet Fraud Detection"**  
-2. Editor opens with pre-filled `scenario_config`:  
-   - Domain: "Employee Timesheet Fraud Detection"  
-   - Primary doc label: "Timesheet Records"  
-   - Decision options: Legitimate / Suspicious / Escalate  
-   - Error categories: duplicate_entry, invalid_billing_code, excessive_hours, etc.  
-   - AI persona: "You are a payroll fraud analyst at Acme Corp..."  
-3. Instructor opens the AI Design Assistant chat and types:  
-   *"Generate 5 realistic CSV rows representing a Workday timesheet export for an employee named Jordan Lee, including columns: employee_id, week_ending, project_code, hours_billed, billing_rate. Make 2 of the entries have subtle fraud indicators."*  
-4. Claude returns a ready-to-use CSV. Instructor copies it, saves as `timesheet-jordan-lee.csv`, uploads as a primary document.  
-5. Instructor asks the assistant: *"What error description should I write for an employee billing 60 hours in a week to a project code that doesn't exist in Q1 budget?"*  
-6. Claude drafts: "Hours billed (60) exceed maximum billable per week policy (50 hrs). Project code XYZ-99 does not appear in Q1 approved project list."  
-7. Instructor sets rubric: `timesheet-jordan-lee.csv` → action: `suspicious`, error_description: (from above)  
-8. Instructor publishes.  
+"Train the trainer" is a fundamentally different design goal. It means: **the platform itself teaches an instructor how to design a good eval scenario**, not just how to operate the UI.
+
+---
+
+### 9.1 The Gap: "Tool Use" vs. "Guided Authoring"
+
+The design up to this point treats the instructor AI assistant as a **power tool** — the instructor knows what to build and uses Claude to execute faster. This is valuable, but it leaves out the instructor who is new to eval design entirely.
+
+| | Tool-use mode | Train-the-trainer mode |
+|---|---|---|
+| **Who it serves** | Experienced instructors who know what they want | First-time instructors who don't know where to start |
+| **AI role** | Executes what the instructor requests | Coaches the instructor on *what to request* |
+| **Entry point** | Instructor opens blank scenario and starts typing | AI greets the instructor and begins an interview |
+| **Output** | A scenario built from the instructor's specs | A scenario built through a guided conversation |
+| **Knows to ask about…** | Nothing — responds to what it's asked | Pedagogy, difficulty, learner level, how many cases, what errors to plant |
+
+Both modes can and should coexist in the same chat panel — but the train-the-trainer mode needs to be designed explicitly.
+
+---
+
+### 9.2 What "Train the Trainer" Looks Like as a UX
+
+When an instructor creates a **new scenario**, the AI Design Assistant should not wait for the instructor to ask the first question. Instead it should open with a **guided intake interview**:
+
+```
+🤖 Welcome! I'm here to help you build a training scenario from scratch.
+
+Let's start with a few questions to understand what you're trying to teach.
+
+1. What domain or job function is this scenario for?
+   (e.g., accounts payable, fraud investigation, expense auditing, HR compliance)
+
+2. What skill do you want learners to practice?
+   (e.g., spotting billing errors, flagging suspicious expense claims,
+   identifying policy violations in timesheets)
+
+3. How experienced are your learners?
+   (e.g., new hires in week 1, mid-level analysts, senior reviewers)
+
+4. Roughly how many cases (documents) should learners review in one session?
+   (Typical range: 5–15 documents)
+
+Answer any or all of these, and I'll help you design the rest.
+```
+
+This is the pedagogical scaffolding that is entirely missing from the current design. The AI is not just a code generator — it is a **curriculum design collaborator**.
+
+---
+
+### 9.3 The Five Stages of Guided Scenario Authoring
+
+The instructor AI chat should guide the instructor through five stages, in order. The AI tracks which stages are complete and prompts the instructor to move forward.
+
+**Stage 1 — Define the learning objective**
+
+The AI helps the instructor answer: *What does a learner who completes this scenario successfully now know how to do?*
+
+Example AI prompt:
+> "Based on what you've described, here's a draft learning objective:
+> *'Learners will be able to identify timesheet entries that violate project billing policy, distinguish legitimate overtime from fraudulent hours, and escalate ambiguous cases appropriately.'*
+> Does this match your intent? Want to adjust the difficulty level?"
+
+**Stage 2 — Design the case set**
+
+The AI helps decide how many documents to create, what mix of clean and problematic cases to include, and what fraud patterns to plant. It asks:
+- How many cases total?
+- What fraction should be clean (legitimate) vs. problematic?
+- Should any cases be ambiguous (i.e., a learner who escalates them is also correct)?
+- What specific error types should appear?
+
+Then it generates the data. For each mock document it produces, it explains *why* it made each fraud indicator subtle or obvious — teaching the instructor the craft of scenario design, not just providing output.
+
+**Stage 3 — Draft the rubric**
+
+The AI walks through each generated document and proposes a rubric entry:
+> "For `timesheet-jordan-lee-week12.csv`:
+> I'd recommend marking this as **Suspicious**.
+> The reason: Jordan billed 58 hours to project code XYZ-99, which does not appear in the Q1 approved project list. Additionally, 14 of those hours fall on a Saturday with no manager approval recorded.
+> Should I use this as the official error description, or would you like to adjust it?"
+
+The instructor approves, edits, or rejects each entry. The AI learns from the edits and adjusts its proposals for the remaining documents.
+
+**Stage 4 — Configure the learner AI assistant**
+
+The AI helps the instructor write the system prompt that learners will use. It explains what makes a good learner-facing AI persona:
+> "The learner's AI assistant should know enough to answer questions about the data and policy, but should *not* give away the answers. Here's a draft persona:
+>
+> *'You are a payroll compliance assistant at Acme Corp. You have access to the company's timesheet policy document and the employee records the analyst has shared with you. Help the analyst understand policy rules and what the data shows. Do not tell them whether a timesheet is fraudulent — help them reason through it themselves.'*
+>
+> Want a more directive assistant (gives more hints) or a more Socratic one (asks questions back)?"
+
+This stage teaches the instructor that the learner-facing AI's persona is a *pedagogical lever* they control — how much to scaffold vs. challenge the learner.
+
+**Stage 5 — Review and publish**
+
+Before the instructor publishes, the AI performs a final review:
+- Are all documents in the rubric?
+- Is the error mix realistic (not too many clean, not too many obviously wrong)?
+- Is there at least one ambiguous case that requires judgment?
+- Is the AI persona consistent with the difficulty level chosen in Stage 1?
+- Is the scenario description clear enough for a learner to understand context without giving anything away?
+
+The AI produces a **scenario health report** and flags any gaps before the instructor hits Publish.
+
+---
+
+### 9.4 How to Implement This in the Current Architecture
+
+The good news: the instructor chat endpoint (proposed in Section 4.3) is the right foundation. The "train the trainer" experience is primarily a **system prompt + conversation design** change, not a new technical capability.
+
+**The instructor-facing system prompt becomes the key artifact.** Instead of the thin three-line prompt proposed in Section 4.3, it needs to be a structured, stage-aware design:
+
+```
+You are a scenario design coach helping an instructor build an AI-powered training module.
+
+YOUR JOB IS TO GUIDE, NOT JUST ASSIST.
+Do not wait for the instructor to ask you what to do next. After each response,
+always tell the instructor what the next step is.
+
+CURRENT STAGE: [injected dynamically based on scenario completeness state]
+
+STAGE FLOW:
+1. INTAKE — Learn what domain, skill, and learner level the instructor is targeting.
+2. CASE DESIGN — Help the instructor decide the document set structure (count, mix, error types).
+3. DATA GENERATION — Generate realistic mock data files (CSV/text) the instructor can upload.
+4. RUBRIC REVIEW — Walk through each document and propose rubric entries, one at a time.
+5. PERSONA DRAFT — Help the instructor write the learner-facing AI system prompt.
+6. FINAL REVIEW — Check scenario completeness and readiness to publish.
+
+PEDAGOGY PRINCIPLES TO TEACH:
+- A good eval scenario has a mix of obvious, subtle, and ambiguous cases.
+- The learner AI should scaffold, not answer. Adjust persona to match difficulty.
+- Rubric entries should explain the error in terms a learner can learn from, not just say "wrong".
+- Scenario descriptions should give learners enough context to understand their role without spoilers.
+
+CURRENT SCENARIO STATE:
+[injected: title, description, doc count, rubric completeness, persona draft]
+```
+
+The stage and scenario state are injected server-side at the time of each chat request — giving the AI the context it needs to track where the instructor is without storing that in the chat history.
+
+---
+
+### 9.5 Summary: What "Train the Trainer" Adds to the Design
+
+| Design element | Without train-the-trainer | With train-the-trainer |
+|---|---|---|
+| AI Design Assistant opening | Waits for instructor to ask something | Greets instructor with guided intake interview |
+| Stage awareness | None — responds to whatever is asked | Tracks 5 stages, prompts instructor to advance |
+| Pedagogy guidance | None | AI explains *why* to design scenarios a certain way |
+| Rubric generation | Instructor asks, AI generates | AI proposes each rubric entry and explains its reasoning |
+| Learner persona design | Instructor writes their own | AI teaches instructor what a good learner persona is |
+| Pre-publish review | None | AI produces a scenario health report before publish |
+| Target user | Experienced instructor who knows eval design | Anyone — including first-time instructors |
+
+---
+
+## 10. Example: What the Fraud Detection Workflow Looks Like End-to-End
+
+> **Note:** This walkthrough now shows the **train-the-trainer** guided authoring experience, not just the mechanical steps. An inexperienced instructor could follow this path from zero.
+
+---
+
+**Instructor workflow — guided authoring:**
+
+**Step 1 — Create scenario.** Instructor clicks **+ New Scenario** → selects **"Start with AI guidance"** (not a template). A blank scenario is created and the editor opens with the AI chat panel already active.
+
+**Step 2 — AI opens with intake.** Without the instructor typing anything, the AI greets:
+> *"Welcome! I'll help you build a training scenario from scratch. To get started: what domain or job function is this scenario for? For example, accounts payable, fraud investigation, HR compliance, or something else?"*
+
+**Step 3 — Instructor answers naturally.** They type:
+> *"I want to train investigators who review employee timesheets for billing fraud. We use Workday and project codes matter a lot."*
+
+**Step 4 — AI refines and confirms the learning objective.** It proposes:
+> *"Great. Here's a draft learning objective: 'Learners will identify timesheet entries that violate project billing policy, including invalid project codes, excessive hours, and unauthorized weekend billing — and will escalate ambiguous cases appropriately.'*
+> *How experienced are your learners? Are they new to fraud investigation, or mid-level analysts who need to sharpen a specific skill?"*
+
+**Step 5 — Instructor answers.** The AI moves to Stage 2 (Case Design):
+> *"For mid-level analysts, I'd suggest 8 timesheet records total: 3 clearly legitimate, 3 with obvious fraud indicators, and 2 ambiguous edge cases that require judgment. The ambiguous ones are important — they prevent learners from gaming the scenario by always flagging everything.*
+> *What fraud patterns are most relevant to your team? Common ones include: (1) invalid/unapproved project codes, (2) hours exceeding weekly cap, (3) weekend billing without manager approval, (4) duplicate entries across two pay periods, (5) rate mismatches vs. employment contract. Which should I include?"*
+
+**Step 6 — Instructor selects patterns.** AI moves to Stage 3 (Data Generation) and produces the first CSV:
+> *"Here's a Workday-style timesheet export for 'Jordan Lee, Employee #EMP-4471'. I've embedded two fraud indicators — see if you can spot them before I explain. [CSV text below]*
+> *... Ready for me to reveal the indicators and draft a rubric entry, or would you like to try identifying them first?"*
+
+The AI is now **teaching the instructor how to evaluate fraud cases**, not just producing output.
+
+**Step 7 — Rubric drafting.** After the instructor reviews, the AI explains:
+> *"Line 4 bills 58 hours to project XYZ-99. That project code doesn't appear in the Q1 approved list in the reference policy document you'll upload. Line 6 is a Saturday entry without a manager approval code — your policy doc will need to define what that looks like.*
+> *Rubric proposal for this document: Action = Suspicious | Error = 'Hours billed to unapproved project code XYZ-99; Saturday entry lacks required manager approval.'*
+> *Accept this, or want to adjust the wording?"*
+
+**Step 8 — Learner persona draft.** After all 8 documents are done, AI moves to Stage 5:
+> *"Now let's write the AI assistant your learners will use during the exercise. For mid-level analysts, I'd recommend a Socratic assistant — one that asks questions back rather than giving hints directly. Here's a draft:*
+> *'You are a payroll compliance assistant. You have access to the company timesheet policy and the employee records the analyst has shared. Help the analyst understand what the policy says and what the data shows. Ask clarifying questions. Do not tell them whether a timesheet is fraudulent.'*
+> *Want a more directive (more hints) or more challenging (fewer hints) version?"*
+
+**Step 9 — Pre-publish health report.** The AI reviews and reports:
+> *"Your scenario looks strong. ✅ 8 documents, all in the rubric. ✅ Mix: 3 clean / 3 obvious / 2 ambiguous — good balance. ✅ Learner persona is consistent with mid-level difficulty. ⚠️ One thing to check: your scenario description says 'review employee timesheets' but doesn't tell learners what their role or decision criteria are. Learners will ask 'what am I supposed to do?' Consider adding: 'You are a payroll investigator. Review each timesheet submission and mark it as Legitimate, Suspicious, or Escalate for Review.'*
+> *Fix that description and you're ready to publish."*
+
+**Step 10 — Instructor fixes description, publishes.**
+
+---
 
 **Learner workflow (unchanged UX, domain-adapted):**
 
 1. Learner sees "Employee Timesheet Fraud Detection" in the learner dashboard  
-2. Opens the session workspace — left panel shows "Timesheet Records" instead of "Invoices"  
-3. Decision bar shows **✅ Legitimate**, **🚨 Suspicious**, **🔍 Escalate**  
-4. Error categories show: duplicate_entry, invalid_billing_code, excessive_hours, etc.  
-5. Learner asks the AI: *"Is a 60-hour week common for project XYZ-99?"*  
-6. Claude (using the fraud-detection persona + attached CSV) responds appropriately  
-7. Learner submits. Scoring engine compares `suspicious === suspicious` — correct  
+2. Opens the session workspace — left panel shows **"Timesheet Records"** instead of "Invoices"  
+3. Decision bar shows **✅ Legitimate**, **🚨 Suspicious**, **🔍 Escalate for Review**  
+4. Error categories show: invalid_project_code, excessive_hours, weekend_no_approval, duplicate_entry, rate_mismatch, other  
+5. Learner asks the AI: *"Does project XYZ-99 appear in the approved project list?"*  
+6. Claude (using the fraud-detection persona + attached policy CSV) responds: *"The policy document you shared lists Q1 approved projects. Can you tell me which project code you're looking at on this timesheet? I can help you cross-reference."*  
+7. Learner makes decisions. Scoring engine compares `suspicious === suspicious` — correct  
 
-The learner experience is domain-coherent from start to finish, and required zero infrastructure changes — just the JSON config.
+The learner experience is domain-coherent from start to finish. The instructor who built it was guided through every decision by the AI — even if they had never designed an eval scenario before.
