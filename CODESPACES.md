@@ -17,6 +17,40 @@ Think of it as **Replit but inside GitHub**. When you open a Codespace:
 
 ---
 
+## 🚨 Seeing the Old Version?
+
+If your Codespace is open but the app looks like an earlier version — for example, the template selector doesn't show Timesheet Fraud Detection, or the scenario editor is missing Domain Settings — your Codespace is running old code and needs to pull the latest from `main`.
+
+**Fix (takes ~30 seconds):**
+
+1. Open a terminal in VS Code (**Ctrl+`** or **View → Terminal**)
+2. Run the built-in task: **Terminal → Run Task → ⬇️ Pull Latest Code & Restart**
+
+   Or paste this into the terminal:
+   ```bash
+   git pull --ff-only origin main && npm install && pkill -f 'node server.js' 2>/dev/null; pkill -f 'node seed.js' 2>/dev/null; sleep 2 && npm start
+   ```
+
+3. Wait for `Server running on port 3000` to appear in the terminal output
+4. Hard-refresh the app tab: **Ctrl+Shift+R** (Windows/Linux) or **Cmd+Shift+R** (Mac)
+
+**What you should see after updating:**
+
+| Feature | Expected |
+|---------|----------|
+| Home page | Two role cards — **🏫 Instructor** and **📋 Learner** |
+| Instructor → + New Scenario | Template selector modal with three options: **🤖 AI guidance**, **🧾 Billing Reconciliation**, **🕵️ Timesheet Fraud Detection** |
+| Scenario editor | **⚙️ Domain Settings** card (Domain Name, Primary/Reference doc type labels, AI Persona) |
+| Learner home | Pre-seeded "CloudSync Pro Invoice Review" billing scenario |
+| Learner workspace | Three-panel layout: document list (left), document viewer (center), AI chat (right) |
+| Decision bar | **✅ Approve** and **🚩 Flag** buttons with error-category dropdown (billing scenario) |
+| AI chat | Responds as an accounts-payable assistant, aware of the uploaded contract and rate card |
+| Results page | Score + per-invoice breakdown with correct/incorrect labels |
+
+> **Why this happens:** Codespaces cache the repo at the point when the container was first created. If new commits land on `main` after your Codespace was built, you need to `git pull` to get them. The `postStartCommand` in `devcontainer.json` only reinstalls packages — it does not auto-pull new commits.
+
+---
+
 ## Part 1 — One-Time Setup (do this once, ever)
 
 ### Step 1A — Store your Anthropic API key as a secret
@@ -261,7 +295,7 @@ To manually stop it (e.g., to save hours): go to **[github.com/codespaces](https
 
 | Task | How |
 |------|-----|
-| **Get new features from this PR** | **Terminal → Run Task → ⬇️ Pull Latest Code & Restart** |
+| **Get latest code from main** | **Terminal → Run Task → ⬇️ Pull Latest Code & Restart** |
 | Open the app | Ports tab → 🌐 icon next to port 3000 |
 | Restart the server | **Terminal → Run Task → Restart Finance Sim** |
 | View server logs | `cat /tmp/finance-sim.log` in a terminal |
