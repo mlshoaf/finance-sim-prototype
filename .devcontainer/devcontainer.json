@@ -8,8 +8,10 @@
       "onAutoForward": "openPreview"
     }
   },
-  // postCreateCommand runs once when the container is first created
-  "postCreateCommand": "npm install",
+  // postCreateCommand runs once when the container is first created.
+  // It switches to the active development branch so the Codespace has the
+  // latest features even if it was created from the main branch.
+  "postCreateCommand": "git fetch origin && git checkout -f copilot/find-alternatives-to-replit && git pull --ff-only origin copilot/find-alternatives-to-replit && npm install",
   // postStartCommand runs every time the codespace is resumed —
   // installs any new packages, rebuilds native modules for the current Node.js
   // version (prevents better-sqlite3 ABI mismatch errors), then starts the server.
