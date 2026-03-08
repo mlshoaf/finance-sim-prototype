@@ -280,6 +280,7 @@ To manually stop it (e.g., to save hours): go to **[github.com/codespaces](https
 |---------|-----|
 | **Auto-pull didn't happen / still on old version** | Check `/tmp/finance-sim.log` — the start script logs git pull results there. If pull failed, run **Terminal → Run Task → ⬇️ Pull Latest Code & Restart**. See the **🚨 Seeing the Old Version?** section for details. |
 | App tab shows "This site can't be reached" or "502 Bad Gateway" | The server isn't running — check `/tmp/finance-sim.log` for errors. If the log looks clean, run: `pkill -f 'node server.js' 2>/dev/null; npm start` in a New Terminal |
+| `ValidationError: The 'X-Forwarded-For' header is set but the Express 'trust proxy' setting is false` in terminal | This was a known bug now fixed in the current `main`. Pull the latest code: **Terminal → Run Task → ⬇️ Pull Latest Code & Restart** |
 | `ERR_DLOPEN_FAILED` / "compiled against a different Node.js version" | Native module ABI mismatch — run `npm rebuild` in the terminal, then `npm start` |
 | AI chat returns "ANTHROPIC_API_KEY" error | The secret wasn't found — double-check [Part 1](#part-1--one-time-setup-do-this-once-ever): the secret name must be exactly `ANTHROPIC_API_KEY` and the repo must be selected |
 | Server didn't auto-start | Check `/tmp/finance-sim.log` for errors: `cat /tmp/finance-sim.log`. Then run: `npm start` in a New Terminal |

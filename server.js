@@ -19,6 +19,11 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 const db = initDb();
 
+// Trust the first reverse proxy (required for Codespaces, Replit, and similar
+// hosted environments that set X-Forwarded-For). Without this, express-rate-limit
+// throws a ValidationError on every request.
+app.set('trust proxy', 1);
+
 // Scenario template presets
 const SCENARIO_TEMPLATES = {
   billing: {
