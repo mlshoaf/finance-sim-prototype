@@ -25,9 +25,8 @@ Free tier: **60 hours/month** (or 120 h/month with GitHub Pro).
 
 **Short version (if you've used Codespaces before):**
 1. Store `ANTHROPIC_API_KEY` as a [Codespaces secret](https://github.com/settings/codespaces) for this repo (one-time)
-2. Open this PR on GitHub → click the green **Code** button → **Codespaces → Create codespace on copilot/find-alternatives-to-replit**
-   > ⚠️ Create from this PR branch, not from `main`. The new features haven't been merged yet.
-3. The container starts, automatically checks out this branch, `npm install` runs, then `npm start` launches automatically
+2. Click the green **Code** button → **Codespaces → Create codespace on main**
+3. The container starts, `npm install` runs, then `npm start` launches automatically
 4. Port 3000 auto-forwards → click **Open in Browser**
 
 ---

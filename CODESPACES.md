@@ -4,62 +4,6 @@ This guide walks you through everything you need to use GitHub Codespaces with t
 
 ---
 
-## 🚨 Seeing the Old Version? Here's the Fix
-
-> **If you opened a Codespace before and it still shows the old app after `npm start`, this section is for you.**
-
-### Why is this happening?
-
-Short answer: **Yes, you need to merge (or switch branches) before the new code runs.**
-
-Here's what's going on. The new features live on a specific code branch called `copilot/find-alternatives-to-replit`. When you clicked "Create codespace on **main**", GitHub gave you the `main` branch — which has the old code. Running `npm start` only runs whatever code is already in your Codespace. It does **not** pull new code from GitHub.
-
-Think of it like this: the repo is a filing cabinet with multiple drawers. You opened the `main` drawer. All the new stuff is in the `copilot/find-alternatives-to-replit` drawer. `npm start` doesn't switch drawers for you.
-
-### The easiest fix: delete and recreate your Codespace (5 minutes, zero commands)
-
-This is the simplest path if the task below doesn't work, or if you'd rather start fresh:
-
-1. Go to **[github.com/codespaces](https://github.com/codespaces)**
-2. Find your existing codespace → click the **`...`** menu → **Delete**
-3. Come back to this PR on GitHub
-4. Click the green **Code** button → **Codespaces** tab → **Create codespace on copilot/find-alternatives-to-replit**
-
-That's it. The new Codespace starts directly on the right branch. The app will be running the new code when it opens.
-
-> **Tip:** If you don't see the PR branch option, make sure you're viewing this PR page on GitHub (not the main repo page).
-
----
-
-### Alternative: Fix your existing Codespace without deleting it
-
-If you'd rather not delete the Codespace, run this one task:
-
-1. In VS Code, open the **Terminal** menu at the top → click **Run Task…**
-2. Select **⬇️ Pull Latest Code & Restart**
-3. Wait 30–60 seconds — watch for the line `✅ Now on branch: copilot/find-alternatives-to-replit` followed by `Finance Simulation server running on http://localhost:3000`
-4. Hard-refresh the app tab: **Ctrl+Shift+R** (Windows/Linux) or **Cmd+Shift+R** (Mac)
-
-If the task doesn't show up (because your Codespace doesn't have the updated `.vscode/tasks.json` yet), paste this directly into a Terminal (`` Ctrl+` ``):
-
-```bash
-git fetch origin && git checkout -f copilot/find-alternatives-to-replit && git pull --ff-only origin copilot/find-alternatives-to-replit && npm install && pkill -f 'node server.js' 2>/dev/null; sleep 2 && npm start
-```
-
-### How to confirm the fix worked
-
-After either fix, go to the app's home page. The subtitle should read:
-> *"AI-powered training platform for analyst skill development"*
-
-When you click **Instructor → + New Scenario** you should see a modal with three choices:
-- 🤖 Start with AI guidance
-- 🧾 Billing Reconciliation
-- 🕵️ Timesheet Fraud Detection
-
-If that modal appears, you're fully up to date. 🎉
-
----
-
 ## What is GitHub Codespaces?
 
 Think of it as **Replit but inside GitHub**. When you open a Codespace:
@@ -99,17 +43,13 @@ This is the most important setup step. It stores your API key in GitHub so that 
 
 ### Step 2A — Launch the codespace
 
-> **Important:** Create your Codespace from the **PR branch**, not from `main`. The new features are on the `copilot/find-alternatives-to-replit` branch. If you create from `main`, you'll get the old code.
-
-1. Go to this pull request on GitHub (you may already be here)
+1. Go to the repo on GitHub: **[github.com/mlshoaf/finance-sim-prototype](https://github.com/mlshoaf/finance-sim-prototype)**
 
 2. Click the green **Code** button (top right of the file list)
 
 3. Click the **Codespaces** tab (next to "Local")
 
-4. Click **Create codespace on copilot/find-alternatives-to-replit**
-
-   > If you only see "Create codespace on main", make sure you are on the **PR page** (the URL should look like `github.com/mlshoaf/finance-sim-prototype/pull/...`), not the repo's main page.
+4. Click **Create codespace on main**
 
 > GitHub now builds your codespace. This takes **60–90 seconds** the first time. You'll see a loading screen with a progress log.
 
@@ -120,7 +60,6 @@ Once the codespace finishes loading, several things happen on their own:
 | Step | What it is | You'll see |
 |------|-----------|------------|
 | Container starts | GitHub boots the cloud VM | Loading spinner |
-| Branch checkout | Switches to `copilot/find-alternatives-to-replit` automatically | Shown in the creation log |
 | `npm install` runs | Installs all dependencies | "postCreateCommand" in the creation log |
 | VS Code opens | Browser-based IDE appears | Editor with file tree on the left |
 | **Server starts automatically** | `npm start` launches via `postStartCommand` | Port 3000 becomes active (no action needed) |

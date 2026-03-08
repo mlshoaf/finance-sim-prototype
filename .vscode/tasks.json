@@ -16,7 +16,7 @@
     {
       "label": "⬇️ Pull Latest Code & Restart",
       "type": "shell",
-      "command": "git fetch origin && git checkout -f copilot/find-alternatives-to-replit && git pull --ff-only origin copilot/find-alternatives-to-replit && echo '✅ Now on branch:' $(git branch --show-current) && npm install && pkill -f 'node server.js' 2>/dev/null; pkill -f 'node seed.js' 2>/dev/null; sleep 2 && npm start",
+      "command": "git pull --ff-only origin main && npm install && pkill -f 'node server.js' 2>/dev/null; pkill -f 'node seed.js' 2>/dev/null; sleep 2 && npm start",
       "isBackground": true,
       "presentation": {
         "reveal": "always",
