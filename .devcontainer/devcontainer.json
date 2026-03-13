@@ -5,15 +5,16 @@
   "portsAttributes": {
     "3000": {
       "label": "Finance Sim App",
-      "onAutoForward": "openPreview"
+      "onAutoForward": "openBrowserOnce"
     }
   },
   // postCreateCommand runs once when the container is first created
   "postCreateCommand": "npm install",
   // postStartCommand runs every time the codespace is resumed —
-  // installs any new packages, rebuilds native modules for the current Node.js
-  // version (prevents better-sqlite3 ABI mismatch errors), then starts the server.
-  "postStartCommand": "npm install --prefer-offline && npm rebuild && nohup npm start > /tmp/finance-sim.log 2>&1 &",
+  // the script pulls latest code from main, installs packages, rebuilds
+  // native modules, and starts the server (if not already running).
+  // See .devcontainer/start.sh for details and log output.
+  "postStartCommand": "bash .devcontainer/start.sh",
   "customizations": {
     "vscode": {
       "extensions": [

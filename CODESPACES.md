@@ -17,6 +17,40 @@ Think of it as **Replit but inside GitHub**. When you open a Codespace:
 
 ---
 
+## 🚨 Seeing the Old Version?
+
+If your Codespace is open but the app looks like an earlier version — for example, the template selector doesn't show Timesheet Fraud Detection, or the scenario editor is missing Domain Settings — your Codespace is running old code and needs to pull the latest from `main`.
+
+**Fix (takes ~30 seconds):**
+
+1. Open a terminal in VS Code (**Ctrl+`** or **View → Terminal**)
+2. Run the built-in task: **Terminal → Run Task → ⬇️ Pull Latest Code & Restart**
+
+   Or paste this into the terminal:
+   ```bash
+   git pull --ff-only origin main && npm install && pkill -f 'node server.js' 2>/dev/null; pkill -f 'node seed.js' 2>/dev/null; sleep 2 && npm start
+   ```
+
+3. Wait for `Server running on port 3000` to appear in the terminal output
+4. Hard-refresh the app tab: **Ctrl+Shift+R** (Windows/Linux) or **Cmd+Shift+R** (Mac)
+
+**What you should see after updating:**
+
+| Feature | Expected |
+|---------|----------|
+| Home page | Two role cards — **🏫 Instructor** and **📋 Learner** |
+| Instructor → + New Scenario | Template selector modal with three options: **🤖 AI guidance**, **🧾 Billing Reconciliation**, **🕵️ Timesheet Fraud Detection** |
+| Scenario editor | **⚙️ Domain Settings** card (Domain Name, Primary/Reference doc type labels, AI Persona) |
+| Learner home | Pre-seeded "CloudSync Pro Invoice Review" billing scenario |
+| Learner workspace | Three-panel layout: document list (left), document viewer (center), AI chat (right) |
+| Decision bar | **✅ Approve** and **🚩 Flag** buttons with error-category dropdown (billing scenario) |
+| AI chat | Responds as an accounts-payable assistant, aware of the uploaded contract and rate card |
+| Results page | Score + per-invoice breakdown with correct/incorrect labels |
+
+> **Why this happens:** Codespaces cache the repo at the point when the container was first created. The `postStartCommand` in `devcontainer.json` now auto-pulls from `main` on every start, so **newly created or rebuilt Codespaces** will always stay current. However, Codespaces that were created *before this fix* was merged will not have the auto-pull behavior until you either rebuild the container (**Ctrl+Shift+P → "Rebuild Container"**) or run the pull task manually as shown above.
+
+---
+
 ## Part 1 — One-Time Setup (do this once, ever)
 
 ### Step 1A — Store your Anthropic API key as a secret
@@ -244,12 +278,13 @@ To manually stop it (e.g., to save hours): go to **[github.com/codespaces](https
 
 | Symptom | Fix |
 |---------|-----|
-| **Still seeing the old version** after `npm start` | Your Codespace is on the old `main` branch. See the **🚨 Seeing the Old Version?** section at the top of this file — use **Terminal → Run Task → ⬇️ Pull Latest Code & Restart** |
+| **Auto-pull didn't happen / still on old version** | Check `/tmp/finance-sim.log` — the start script logs git pull results there. If pull failed, run **Terminal → Run Task → ⬇️ Pull Latest Code & Restart**. See the **🚨 Seeing the Old Version?** section for details. |
 | App tab shows "This site can't be reached" or "502 Bad Gateway" | The server isn't running — check `/tmp/finance-sim.log` for errors. If the log looks clean, run: `pkill -f 'node server.js' 2>/dev/null; npm start` in a New Terminal |
+| `ValidationError: The 'X-Forwarded-For' header is set but the Express 'trust proxy' setting is false` in terminal | This was a known bug now fixed in the current `main`. Pull the latest code: **Terminal → Run Task → ⬇️ Pull Latest Code & Restart** |
 | `ERR_DLOPEN_FAILED` / "compiled against a different Node.js version" | Native module ABI mismatch — run `npm rebuild` in the terminal, then `npm start` |
 | AI chat returns "ANTHROPIC_API_KEY" error | The secret wasn't found — double-check [Part 1](#part-1--one-time-setup-do-this-once-ever): the secret name must be exactly `ANTHROPIC_API_KEY` and the repo must be selected |
 | Server didn't auto-start | Check `/tmp/finance-sim.log` for errors: `cat /tmp/finance-sim.log`. Then run: `npm start` in a New Terminal |
-| Port 3000 not listed in Ports tab | Run `npm start` in a New Terminal — the port appears once the server starts |
+| Port 3000 not listed in Ports tab / only seeing README | The server may not have started yet. Check `cat /tmp/finance-sim.log`. If there are errors, run `npm start` in a New Terminal. The app tab opens automatically once port 3000 is active. |
 | `npm install` fails | Run `npm install` manually in the terminal and check the error output |
 | Changes not showing in the app | Hard-refresh: **Ctrl+Shift+R** (Windows/Linux) or **Cmd+Shift+R** (Mac). If that doesn't help, restart the server via **Terminal → Run Task → Restart Finance Sim** |
 | Codespace won't start | Go to [github.com/codespaces](https://github.com/codespaces), delete the codespace, and create a new one — your committed code is safe in GitHub |
@@ -261,8 +296,9 @@ To manually stop it (e.g., to save hours): go to **[github.com/codespaces](https
 
 | Task | How |
 |------|-----|
-| **Get new features from this PR** | **Terminal → Run Task → ⬇️ Pull Latest Code & Restart** |
+| **Get latest code from main** | **Terminal → Run Task → ⬇️ Pull Latest Code & Restart** |
 | Open the app | Ports tab → 🌐 icon next to port 3000 |
+| Server didn't start automatically | `npm start` in a New Terminal — also check `cat /tmp/finance-sim.log` |
 | Restart the server | **Terminal → Run Task → Restart Finance Sim** |
 | View server logs | `cat /tmp/finance-sim.log` in a terminal |
 | Commit changes | Source Control sidebar (Ctrl+Shift+G) |
