@@ -284,7 +284,7 @@ To manually stop it (e.g., to save hours): go to **[github.com/codespaces](https
 | `ERR_DLOPEN_FAILED` / "compiled against a different Node.js version" | Native module ABI mismatch — run `npm rebuild` in the terminal, then `npm start` |
 | AI chat returns "ANTHROPIC_API_KEY" error | The secret wasn't found — double-check [Part 1](#part-1--one-time-setup-do-this-once-ever): the secret name must be exactly `ANTHROPIC_API_KEY` and the repo must be selected |
 | Server didn't auto-start | Check `/tmp/finance-sim.log` for errors: `cat /tmp/finance-sim.log`. Then run: `npm start` in a New Terminal |
-| Port 3000 not listed in Ports tab | Run `npm start` in a New Terminal — the port appears once the server starts |
+| Port 3000 not listed in Ports tab / only seeing README | The server may not have started yet. Check `cat /tmp/finance-sim.log`. If there are errors, run `npm start` in a New Terminal. The app tab opens automatically once port 3000 is active. |
 | `npm install` fails | Run `npm install` manually in the terminal and check the error output |
 | Changes not showing in the app | Hard-refresh: **Ctrl+Shift+R** (Windows/Linux) or **Cmd+Shift+R** (Mac). If that doesn't help, restart the server via **Terminal → Run Task → Restart Finance Sim** |
 | Codespace won't start | Go to [github.com/codespaces](https://github.com/codespaces), delete the codespace, and create a new one — your committed code is safe in GitHub |
@@ -298,6 +298,7 @@ To manually stop it (e.g., to save hours): go to **[github.com/codespaces](https
 |------|-----|
 | **Get latest code from main** | **Terminal → Run Task → ⬇️ Pull Latest Code & Restart** |
 | Open the app | Ports tab → 🌐 icon next to port 3000 |
+| Server didn't start automatically | `npm start` in a New Terminal — also check `cat /tmp/finance-sim.log` |
 | Restart the server | **Terminal → Run Task → Restart Finance Sim** |
 | View server logs | `cat /tmp/finance-sim.log` in a terminal |
 | Commit changes | Source Control sidebar (Ctrl+Shift+G) |
